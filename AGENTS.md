@@ -46,3 +46,4 @@ npm run test:coverage # Vitest with coverage
 - Place API route handlers in `src/app/api/<resource>/route.ts`.
 - Use Tailwind utility classes. No CSS modules or styled-components.
 - Consult `node_modules/next/dist/docs/` for the latest Next.js API conventions.
+- Commit and push after each update. Run `npm run build` and `npm test` before committing to ensure no regressions.
