@@ -218,7 +218,22 @@ export async function upsertInstructorProfile(
     .upsert({ ...values, updated_at: new Date().toISOString() })
     .select()
     .single();
-  if (error) throw new Error(error.message);
+  if (error) {
+    if (error.message.includes("schema cache") || error.code === "PGRST204") {
+      throw new Error(
+        "Table 'instructor_profiles' not found. Run supabase/setup.sql in the Supabase SQL Editor.",
+      );
+    }
+    if (
+      error.message.includes("row-level security") ||
+      error.message.includes("policy")
+    ) {
+      throw new Error(
+        "Profile save blocked by RLS. Run supabase/setup.sql in the Supabase SQL Editor to create the required policies.",
+      );
+    }
+    throw new Error(error.message);
+  }
   return data as InstructorProfile;
 }
 
@@ -260,7 +275,17 @@ export async function uploadPhoto(file: File): Promise<string> {
   const { error } = await supabase.storage
     .from("photos")
     .upload(path, file, { upsert: false, contentType: file.type });
-  if (error) throw new Error(error.message);
+  if (error) {
+    if (
+      error.message.includes("row-level security") ||
+      error.message.includes("policy")
+    ) {
+      throw new Error(
+        "Storage upload blocked by RLS. Run supabase/setup.sql in the Supabase SQL Editor to create the required policies.",
+      );
+    }
+    throw new Error(error.message);
+  }
 
   const {
     data: { publicUrl },
