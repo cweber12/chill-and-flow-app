@@ -33,7 +33,10 @@ export default function ClassDetailPage({
     return (
       <div className="mx-auto max-w-4xl px-6 py-24 text-center">
         <h1 className="text-2xl font-bold">Class not found</h1>
-        <Link href="/" className="mt-4 inline-block text-accent hover:underline">
+        <Link
+          href="/"
+          className="mt-4 inline-block text-accent hover:underline"
+        >
           Go back
         </Link>
       </div>
@@ -71,9 +74,7 @@ export default function ClassDetailPage({
         {yogaClass.video_url ? (
           <div
             className={`relative overflow-hidden rounded-xl bg-black ${
-              fullscreen
-                ? "fixed inset-0 z-50 rounded-none"
-                : "aspect-video"
+              fullscreen ? "fixed inset-0 z-50 rounded-none" : "aspect-video"
             }`}
           >
             <video

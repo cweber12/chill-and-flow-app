@@ -3,30 +3,30 @@
 import { useState, useEffect, useRef } from "react";
 import { useAuth } from "@/hooks/use-auth";
 import {
-  fetchInstructorById,
-  upsertInstructorProfile,
+  fetchStudentProfile,
+  upsertStudentProfile,
   uploadPhoto,
 } from "@/lib/supabase/queries";
 import { LocationInput } from "@/components/ui/location-input";
-import type { InstructorProfile } from "@/types";
+import type { StudentProfile } from "@/types";
 
-export default function InstructorProfilePage() {
+export default function StudentProfilePage() {
   const { user, loading: authLoading } = useAuth();
-  const [profile, setProfile] = useState<InstructorProfile | null>(null);
+  const [profile, setProfile] = useState<StudentProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [fullName, setFullName] = useState("");
   const [bio, setBio] = useState("");
   const [city, setCity] = useState("");
   const [state, setState] = useState("");
   const [zip, setZip] = useState("");
-  const [photos, setPhotos] = useState<string[]>([]);
+  const [photoUrl, setPhotoUrl] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (!user) return;
-    fetchInstructorById(user.id)
+    fetchStudentProfile(user.id)
       .then((p) => {
         if (p) {
           setProfile(p);
@@ -35,7 +35,7 @@ export default function InstructorProfilePage() {
           setCity(p.city || "");
           setState(p.state || "");
           setZip(p.zip || "");
-          setPhotos(p.photos);
+          setPhotoUrl(p.photo_url);
         } else {
           setFullName(user.user_metadata?.full_name || "");
         }
@@ -53,17 +53,13 @@ export default function InstructorProfilePage() {
     }
     try {
       const url = await uploadPhoto(file);
-      setPhotos((prev) => [...prev, url]);
+      setPhotoUrl(url);
     } catch (err) {
       setMessage(
         err instanceof Error ? err.message : "Failed to upload photo.",
       );
     }
     if (fileInputRef.current) fileInputRef.current.value = "";
-  };
-
-  const removePhoto = (index: number) => {
-    setPhotos((prev) => prev.filter((_, i) => i !== index));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -73,16 +69,14 @@ export default function InstructorProfilePage() {
     setMessage(null);
 
     try {
-      const locationStr = [city, state, zip].filter(Boolean).join(", ");
-      const updated = await upsertInstructorProfile({
+      const updated = await upsertStudentProfile({
         id: user.id,
         full_name: fullName,
         bio,
-        location: locationStr,
         city,
         state,
         zip,
-        photos,
+        photo_url: photoUrl,
       });
       setProfile(updated);
       setMessage("Profile saved successfully!");
@@ -107,12 +101,51 @@ export default function InstructorProfilePage() {
 
   return (
     <div className="mx-auto max-w-2xl px-6 py-12">
-      <h1 className="text-3xl font-bold tracking-tight">Instructor Profile</h1>
-      <p className="mt-2 text-muted">
-        Update your bio, location, and photos visible to students.
-      </p>
+      <h1 className="text-3xl font-bold tracking-tight">My Profile</h1>
+      <p className="mt-2 text-muted">Update your photo, bio, and location.</p>
 
       <form onSubmit={handleSubmit} className="mt-8 space-y-5">
+        {/* Photo */}
+        <div>
+          <label className="block text-sm font-medium mb-2">Photo</label>
+          <div className="flex items-center gap-4">
+            {photoUrl ? (
+              <img
+                src={photoUrl}
+                alt="Profile"
+                className="h-20 w-20 rounded-full object-cover"
+              />
+            ) : (
+              <div className="flex h-20 w-20 items-center justify-center rounded-full bg-surface-hover text-muted text-2xl font-bold">
+                {fullName ? fullName.charAt(0).toUpperCase() : "?"}
+              </div>
+            )}
+            <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              className="rounded-lg border border-border bg-surface px-4 py-2 text-sm font-medium transition-colors hover:border-accent hover:text-accent"
+            >
+              {photoUrl ? "Change Photo" : "Upload Photo"}
+            </button>
+            {photoUrl && (
+              <button
+                type="button"
+                onClick={() => setPhotoUrl(null)}
+                className="text-sm text-muted hover:text-red-500 transition-colors"
+              >
+                Remove
+              </button>
+            )}
+          </div>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/jpeg,image/png,image/webp,image/gif"
+            className="sr-only"
+            onChange={handlePhotoUpload}
+          />
+        </div>
+
         <div>
           <label htmlFor="fullName" className="block text-sm font-medium mb-1">
             Full Name
@@ -145,60 +178,9 @@ export default function InstructorProfilePage() {
             id="bio"
             value={bio}
             onChange={(e) => setBio(e.target.value)}
-            rows={5}
+            rows={4}
             className="w-full rounded-lg border border-border bg-surface px-4 py-2.5 text-sm outline-none focus:border-accent focus:ring-1 focus:ring-accent resize-none"
-            placeholder="Tell students about your teaching style, experience, certifications…"
-          />
-        </div>
-
-        {/* Photos */}
-        <div>
-          <label className="block text-sm font-medium mb-2">Photos</label>
-          <div className="flex flex-wrap gap-3">
-            {photos.map((url, i) => (
-              <div key={url} className="group relative h-24 w-24">
-                <img
-                  src={url}
-                  alt={`Photo ${i + 1}`}
-                  className="h-full w-full rounded-lg object-cover"
-                />
-                <button
-                  type="button"
-                  onClick={() => removePhoto(i)}
-                  className="absolute -right-2 -top-2 flex h-5 w-5 items-center justify-center rounded-full bg-accent text-white text-xs opacity-0 group-hover:opacity-100 transition-opacity"
-                  aria-label={`Remove photo ${i + 1}`}
-                >
-                  ×
-                </button>
-              </div>
-            ))}
-            <button
-              type="button"
-              onClick={() => fileInputRef.current?.click()}
-              className="flex h-24 w-24 items-center justify-center rounded-lg border-2 border-dashed border-border text-muted hover:border-accent hover:text-accent transition-colors"
-              aria-label="Add photo"
-            >
-              <svg
-                className="h-6 w-6"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M12 4v16m8-8H4"
-                />
-              </svg>
-            </button>
-          </div>
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept="image/jpeg,image/png,image/webp,image/gif"
-            className="sr-only"
-            onChange={handlePhotoUpload}
+            placeholder="Tell us about yourself, your yoga journey, what you're looking for…"
           />
         </div>
 

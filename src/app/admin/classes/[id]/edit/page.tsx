@@ -2,7 +2,12 @@
 
 import { use, useState, useEffect, useRef } from "react";
 import Link from "next/link";
-import { fetchClassById, updateClass, uploadClassVideo } from "@/lib/supabase/queries";
+import {
+  fetchClassById,
+  updateClass,
+  uploadClassVideo,
+  uploadImage,
+} from "@/lib/supabase/queries";
 import { CLASS_TYPES, DIFFICULTIES, capitalize } from "@/lib/constants";
 import type { ClassDifficulty, ClassType, YogaClass } from "@/types";
 
@@ -32,7 +37,10 @@ export default function EditClassPage({
     return (
       <div className="mx-auto max-w-4xl px-6 py-24 text-center">
         <h1 className="text-2xl font-bold">Class not found</h1>
-        <Link href="/admin/classes" className="mt-4 inline-block text-accent hover:underline">
+        <Link
+          href="/admin/classes"
+          className="mt-4 inline-block text-accent hover:underline"
+        >
           Back to classes
         </Link>
       </div>
@@ -46,13 +54,17 @@ function EditClassForm({ yogaClass }: { yogaClass: YogaClass }) {
   const [title, setTitle] = useState(yogaClass.title);
   const [description, setDescription] = useState(yogaClass.description);
   const [type, setType] = useState<ClassType>(yogaClass.type);
-  const [difficulty, setDifficulty] = useState<ClassDifficulty>(yogaClass.difficulty);
+  const [difficulty, setDifficulty] = useState<ClassDifficulty>(
+    yogaClass.difficulty,
+  );
   const [duration, setDuration] = useState(yogaClass.duration_minutes);
   const [location, setLocation] = useState(yogaClass.location);
   const [videoFile, setVideoFile] = useState<File | null>(null);
+  const [imageFile, setImageFile] = useState<File | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const imageInputRef = useRef<HTMLInputElement>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -65,12 +77,28 @@ function EditClassForm({ yogaClass }: { yogaClass: YogaClass }) {
         video_url = await uploadClassVideo(videoFile);
       }
 
+      let image_url = yogaClass.image_url;
+      if (imageFile) {
+        image_url = await uploadImage(imageFile);
+      }
+
       await updateClass(yogaClass.id, {
-        title, description, type, difficulty, duration_minutes: duration, location, video_url,
+        title,
+        description,
+        type,
+        difficulty,
+        duration_minutes: duration,
+        location,
+        video_url,
+        image_url,
       });
       setMessage("Class updated successfully!");
     } catch (err) {
-      setMessage(err instanceof Error ? err.message : "Failed to update class. Please try again.");
+      setMessage(
+        err instanceof Error
+          ? err.message
+          : "Failed to update class. Please try again.",
+      );
     } finally {
       setSaving(false);
     }
@@ -86,11 +114,16 @@ function EditClassForm({ yogaClass }: { yogaClass: YogaClass }) {
       </Link>
 
       <h1 className="mt-6 text-3xl font-bold tracking-tight">Edit Class</h1>
-      <p className="mt-2 text-muted">Update this class&apos;s details and video.</p>
+      <p className="mt-2 text-muted">
+        Update this class&apos;s details and video.
+      </p>
 
       <form onSubmit={handleSubmit} className="mt-8 space-y-5">
         <div>
-          <label htmlFor="classTitle" className="block text-sm font-medium mb-1">
+          <label
+            htmlFor="classTitle"
+            className="block text-sm font-medium mb-1"
+          >
             Class Title
           </label>
           <input
@@ -104,7 +137,10 @@ function EditClassForm({ yogaClass }: { yogaClass: YogaClass }) {
         </div>
 
         <div>
-          <label htmlFor="classDescription" className="block text-sm font-medium mb-1">
+          <label
+            htmlFor="classDescription"
+            className="block text-sm font-medium mb-1"
+          >
             Description
           </label>
           <textarea
@@ -119,7 +155,10 @@ function EditClassForm({ yogaClass }: { yogaClass: YogaClass }) {
 
         <div className="grid gap-5 sm:grid-cols-3">
           <div>
-            <label htmlFor="classType" className="block text-sm font-medium mb-1">
+            <label
+              htmlFor="classType"
+              className="block text-sm font-medium mb-1"
+            >
               Type
             </label>
             <select
@@ -137,7 +176,10 @@ function EditClassForm({ yogaClass }: { yogaClass: YogaClass }) {
           </div>
 
           <div>
-            <label htmlFor="classDifficulty" className="block text-sm font-medium mb-1">
+            <label
+              htmlFor="classDifficulty"
+              className="block text-sm font-medium mb-1"
+            >
               Difficulty
             </label>
             <select
@@ -155,7 +197,10 @@ function EditClassForm({ yogaClass }: { yogaClass: YogaClass }) {
           </div>
 
           <div>
-            <label htmlFor="classDuration" className="block text-sm font-medium mb-1">
+            <label
+              htmlFor="classDuration"
+              className="block text-sm font-medium mb-1"
+            >
               Duration (min)
             </label>
             <input
@@ -171,7 +216,10 @@ function EditClassForm({ yogaClass }: { yogaClass: YogaClass }) {
         </div>
 
         <div>
-          <label htmlFor="classLocation" className="block text-sm font-medium mb-1">
+          <label
+            htmlFor="classLocation"
+            className="block text-sm font-medium mb-1"
+          >
             Location
           </label>
           <input
@@ -184,6 +232,57 @@ function EditClassForm({ yogaClass }: { yogaClass: YogaClass }) {
           />
         </div>
 
+        {/* Background image upload */}
+        <div>
+          <label className="block text-sm font-medium mb-1">
+            Background Image
+          </label>
+          <div
+            role="button"
+            tabIndex={0}
+            aria-label="Upload background image"
+            onClick={() => imageInputRef.current?.click()}
+            onKeyDown={(e) =>
+              e.key === "Enter" && imageInputRef.current?.click()
+            }
+            className="flex cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed border-border bg-surface py-6 transition-colors hover:border-accent"
+          >
+            <svg
+              className="mb-2 h-6 w-6 text-muted"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={1.5}
+                d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
+              />
+            </svg>
+            {imageFile ? (
+              <p className="text-sm font-medium text-accent">
+                {imageFile.name}
+              </p>
+            ) : yogaClass.image_url ? (
+              <p className="text-sm text-muted">
+                Replace background image — click to browse
+              </p>
+            ) : (
+              <p className="text-sm text-muted">
+                Upload background image (optional)
+              </p>
+            )}
+            <input
+              ref={imageInputRef}
+              type="file"
+              accept="image/jpeg,image/png,image/webp,image/gif"
+              className="sr-only"
+              onChange={(e) => setImageFile(e.target.files?.[0] ?? null)}
+            />
+          </div>
+        </div>
+
         {/* Video upload */}
         <div>
           <label className="block text-sm font-medium mb-1">Video</label>
@@ -193,7 +292,9 @@ function EditClassForm({ yogaClass }: { yogaClass: YogaClass }) {
             aria-label="Upload video"
             className="flex cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed border-border bg-surface py-8 transition-colors hover:border-accent"
             onClick={() => fileInputRef.current?.click()}
-            onKeyDown={(e) => e.key === "Enter" && fileInputRef.current?.click()}
+            onKeyDown={(e) =>
+              e.key === "Enter" && fileInputRef.current?.click()
+            }
           >
             <svg
               className="mb-2 h-8 w-8 text-muted"
@@ -209,10 +310,13 @@ function EditClassForm({ yogaClass }: { yogaClass: YogaClass }) {
               />
             </svg>
             {videoFile ? (
-              <p className="text-sm font-medium text-accent">{videoFile.name}</p>
+              <p className="text-sm font-medium text-accent">
+                {videoFile.name}
+              </p>
             ) : (
               <p className="text-sm text-muted">
-                {yogaClass.video_url ? "Replace video" : "Upload video"} — click to browse
+                {yogaClass.video_url ? "Replace video" : "Upload video"} — click
+                to browse
               </p>
             )}
             <input
@@ -250,4 +354,3 @@ function EditClassForm({ yogaClass }: { yogaClass: YogaClass }) {
     </div>
   );
 }
-

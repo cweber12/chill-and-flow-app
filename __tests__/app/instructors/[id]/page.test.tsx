@@ -42,10 +42,23 @@ vi.mock("next/navigation", () => ({
   usePathname: () => "/instructors/inst-1",
 }));
 
+vi.mock("@/hooks/use-auth", () => ({
+  useAuth: () => ({
+    user: { id: "student-1", user_metadata: {} },
+    role: "user",
+    loading: false,
+    signOut: vi.fn(),
+  }),
+}));
+
 vi.mock("@/lib/supabase/queries", () => ({
   fetchInstructorById: vi.fn().mockResolvedValue(mockInstructor),
   fetchClassesByInstructor: vi.fn().mockResolvedValue(mockClasses),
   fetchSeriesByInstructor: vi.fn().mockResolvedValue(mockSeries),
+  followInstructor: vi.fn().mockResolvedValue(undefined),
+  unfollowInstructor: vi.fn().mockResolvedValue(undefined),
+  fetchFollowedInstructorIds: vi.fn().mockResolvedValue([]),
+  fetchFollowerCount: vi.fn().mockResolvedValue(42),
 }));
 
 import { fetchInstructorById } from "@/lib/supabase/queries";

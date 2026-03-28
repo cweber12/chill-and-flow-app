@@ -17,9 +17,11 @@ vi.mock("@/hooks/use-auth", () => ({
 }));
 
 vi.mock("@/lib/supabase/queries", () => ({
-  fetchClassById: vi.fn().mockImplementation((id: string) =>
-    Promise.resolve(MOCK_ALL_CLASSES.find((c) => c.id === id) ?? null),
-  ),
+  fetchClassById: vi
+    .fn()
+    .mockImplementation((id: string) =>
+      Promise.resolve(MOCK_ALL_CLASSES.find((c) => c.id === id) ?? null),
+    ),
 }));
 
 import ClassDetailPage from "@/app/classes/[id]/page";

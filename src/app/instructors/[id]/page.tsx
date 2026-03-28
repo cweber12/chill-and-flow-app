@@ -2,10 +2,15 @@
 
 import { use, useState, useEffect } from "react";
 import Link from "next/link";
+import { useAuth } from "@/hooks/use-auth";
 import {
   fetchInstructorById,
   fetchClassesByInstructor,
   fetchSeriesByInstructor,
+  followInstructor,
+  unfollowInstructor,
+  fetchFollowedInstructorIds,
+  fetchFollowerCount,
 } from "@/lib/supabase/queries";
 import type { InstructorProfile, YogaClass, YogaSeries } from "@/types";
 
@@ -15,28 +20,60 @@ export default function InstructorDetailPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = use(params);
+  const { user, role } = useAuth();
   const [instructor, setInstructor] = useState<
     InstructorProfile | null | undefined
   >(undefined);
   const [classes, setClasses] = useState<YogaClass[]>([]);
   const [series, setSeries] = useState<YogaSeries[]>([]);
   const [slideIndex, setSlideIndex] = useState(0);
+  const [following, setFollowing] = useState(false);
+  const [followers, setFollowers] = useState(0);
+  const [followLoading, setFollowLoading] = useState(false);
 
   useEffect(() => {
     fetchInstructorById(id)
       .then(async (profile) => {
         setInstructor(profile);
         if (profile) {
-          const [c, s] = await Promise.all([
+          const [c, s, count] = await Promise.all([
             fetchClassesByInstructor(id),
             fetchSeriesByInstructor(id),
+            fetchFollowerCount(id),
           ]);
           setClasses(c);
           setSeries(s);
+          setFollowers(count);
         }
       })
       .catch(() => setInstructor(null));
   }, [id]);
+
+  // Check if the current user follows this instructor
+  useEffect(() => {
+    if (!user || role !== "user") return;
+    fetchFollowedInstructorIds().then((ids) => setFollowing(ids.includes(id)));
+  }, [user, id, role]);
+
+  const handleFollowToggle = async () => {
+    if (followLoading) return;
+    setFollowLoading(true);
+    try {
+      if (following) {
+        await unfollowInstructor(id);
+        setFollowing(false);
+        setFollowers((prev) => Math.max(0, prev - 1));
+      } else {
+        await followInstructor(id);
+        setFollowing(true);
+        setFollowers((prev) => prev + 1);
+      }
+    } catch {
+      // Silently fail
+    } finally {
+      setFollowLoading(false);
+    }
+  };
 
   // Auto-advance slideshow
   useEffect(() => {
@@ -111,9 +148,27 @@ export default function InstructorDetailPage({
       <h1 className="mt-6 text-3xl font-bold tracking-tight">
         {instructor.full_name}
       </h1>
-      {instructor.location && (
-        <p className="mt-1 text-sm text-muted">📍 {instructor.location}</p>
-      )}
+      <div className="mt-2 flex items-center gap-4">
+        {instructor.location && (
+          <span className="text-sm text-muted">📍 {instructor.location}</span>
+        )}
+        <span className="text-sm text-muted">
+          {followers} {followers === 1 ? "follower" : "followers"}
+        </span>
+        {user && role === "user" && (
+          <button
+            onClick={handleFollowToggle}
+            disabled={followLoading}
+            className={`rounded-lg px-4 py-1.5 text-xs font-medium transition-colors ${
+              following
+                ? "bg-accent/10 text-accent hover:bg-red-50 hover:text-red-600"
+                : "bg-accent text-white hover:bg-accent/80"
+            } disabled:opacity-50`}
+          >
+            {following ? "Following ✓" : "Follow"}
+          </button>
+        )}
+      </div>
       {instructor.bio && (
         <p className="mt-4 text-muted leading-relaxed">{instructor.bio}</p>
       )}

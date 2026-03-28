@@ -40,7 +40,10 @@ export default function SeriesDetailPage({
     return (
       <div className="mx-auto max-w-4xl px-6 py-24 text-center">
         <h1 className="text-2xl font-bold">Series not found</h1>
-        <Link href="/" className="mt-4 inline-block text-accent hover:underline">
+        <Link
+          href="/"
+          className="mt-4 inline-block text-accent hover:underline"
+        >
           Go back
         </Link>
       </div>
@@ -57,9 +60,7 @@ export default function SeriesDetailPage({
         ← Back to series
       </Link>
 
-      <h1 className="mt-6 text-3xl font-bold tracking-tight">
-        {series.title}
-      </h1>
+      <h1 className="mt-6 text-3xl font-bold tracking-tight">{series.title}</h1>
 
       <p className="mt-3 text-muted leading-relaxed">{series.description}</p>
 

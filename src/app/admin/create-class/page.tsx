@@ -2,7 +2,11 @@
 
 import { useState, useMemo, useRef } from "react";
 import { getPlaceholderTitle } from "@/lib/mock-data";
-import { createClass, uploadClassVideo } from "@/lib/supabase/queries";
+import {
+  createClass,
+  uploadClassVideo,
+  uploadImage,
+} from "@/lib/supabase/queries";
 import { CLASS_TYPES, DIFFICULTIES, capitalize } from "@/lib/constants";
 import type { ClassDifficulty, ClassType } from "@/types";
 
@@ -14,9 +18,11 @@ export default function CreateClassPage() {
   const [duration, setDuration] = useState(30);
   const [location, setLocation] = useState("");
   const [videoFile, setVideoFile] = useState<File | null>(null);
+  const [imageFile, setImageFile] = useState<File | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const imageInputRef = useRef<HTMLInputElement>(null);
   const placeholderTitle = useMemo(() => `e.g. ${getPlaceholderTitle()}`, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -32,8 +38,18 @@ export default function CreateClassPage() {
 
     try {
       const video_url = await uploadClassVideo(videoFile);
+      const image_url = imageFile ? await uploadImage(imageFile) : undefined;
 
-      await createClass({ title, description, type, difficulty, duration_minutes: duration, location, video_url });
+      await createClass({
+        title,
+        description,
+        type,
+        difficulty,
+        duration_minutes: duration,
+        location,
+        video_url,
+        image_url,
+      });
 
       setMessage(`Class "${title}" created successfully!`);
       setTitle("");
@@ -43,8 +59,13 @@ export default function CreateClassPage() {
       setDuration(30);
       setLocation("");
       setVideoFile(null);
+      setImageFile(null);
     } catch (err) {
-      setMessage(err instanceof Error ? err.message : "Failed to create class. Please try again.");
+      setMessage(
+        err instanceof Error
+          ? err.message
+          : "Failed to create class. Please try again.",
+      );
     } finally {
       setSaving(false);
     }
@@ -53,13 +74,14 @@ export default function CreateClassPage() {
   return (
     <div className="mx-auto max-w-2xl px-6 py-12">
       <h1 className="text-3xl font-bold tracking-tight">Create New Class</h1>
-      <p className="mt-2 text-muted">
-        Design a yoga class for your students.
-      </p>
+      <p className="mt-2 text-muted">Design a yoga class for your students.</p>
 
       <form onSubmit={handleSubmit} className="mt-8 space-y-5">
         <div>
-          <label htmlFor="classTitle" className="block text-sm font-medium mb-1">
+          <label
+            htmlFor="classTitle"
+            className="block text-sm font-medium mb-1"
+          >
             Class Title
           </label>
           <input
@@ -93,7 +115,10 @@ export default function CreateClassPage() {
 
         <div className="grid gap-5 sm:grid-cols-3">
           <div>
-            <label htmlFor="classType" className="block text-sm font-medium mb-1">
+            <label
+              htmlFor="classType"
+              className="block text-sm font-medium mb-1"
+            >
               Type
             </label>
             <select
@@ -120,9 +145,7 @@ export default function CreateClassPage() {
             <select
               id="classDifficulty"
               value={difficulty}
-              onChange={(e) =>
-                setDifficulty(e.target.value as ClassDifficulty)
-              }
+              onChange={(e) => setDifficulty(e.target.value as ClassDifficulty)}
               className="w-full rounded-lg border border-border bg-surface px-4 py-2.5 text-sm outline-none focus:border-accent focus:ring-1 focus:ring-accent"
             >
               {DIFFICULTIES.map((d) => (
@@ -153,7 +176,10 @@ export default function CreateClassPage() {
         </div>
 
         <div>
-          <label htmlFor="classLocation" className="block text-sm font-medium mb-1">
+          <label
+            htmlFor="classLocation"
+            className="block text-sm font-medium mb-1"
+          >
             Location
           </label>
           <input
@@ -166,6 +192,53 @@ export default function CreateClassPage() {
           />
         </div>
 
+        {/* Background image upload */}
+        <div>
+          <label className="block text-sm font-medium mb-1">
+            Background Image
+          </label>
+          <div
+            role="button"
+            tabIndex={0}
+            aria-label="Upload background image"
+            onClick={() => imageInputRef.current?.click()}
+            onKeyDown={(e) =>
+              e.key === "Enter" && imageInputRef.current?.click()
+            }
+            className="flex cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed border-border bg-surface py-6 transition-colors hover:border-accent"
+          >
+            <svg
+              className="mb-2 h-6 w-6 text-muted"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={1.5}
+                d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
+              />
+            </svg>
+            {imageFile ? (
+              <p className="text-sm font-medium text-accent">
+                {imageFile.name}
+              </p>
+            ) : (
+              <p className="text-sm text-muted">
+                Click to select a background image (optional)
+              </p>
+            )}
+            <input
+              ref={imageInputRef}
+              type="file"
+              accept="image/jpeg,image/png,image/webp,image/gif"
+              className="sr-only"
+              onChange={(e) => setImageFile(e.target.files?.[0] ?? null)}
+            />
+          </div>
+        </div>
+
         {/* Video upload */}
         <div>
           <label className="block text-sm font-medium mb-1">
@@ -176,7 +249,9 @@ export default function CreateClassPage() {
             tabIndex={0}
             aria-label="Upload video"
             onClick={() => fileInputRef.current?.click()}
-            onKeyDown={(e) => e.key === "Enter" && fileInputRef.current?.click()}
+            onKeyDown={(e) =>
+              e.key === "Enter" && fileInputRef.current?.click()
+            }
             className="flex cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed border-border bg-surface py-8 transition-colors hover:border-accent"
           >
             <svg
@@ -193,7 +268,9 @@ export default function CreateClassPage() {
               />
             </svg>
             {videoFile ? (
-              <p className="text-sm font-medium text-accent">{videoFile.name}</p>
+              <p className="text-sm font-medium text-accent">
+                {videoFile.name}
+              </p>
             ) : (
               <p className="text-sm text-muted">Click to select a video file</p>
             )}

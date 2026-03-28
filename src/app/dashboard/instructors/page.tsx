@@ -2,20 +2,52 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { fetchAllInstructors } from "@/lib/supabase/queries";
+import {
+  fetchAllInstructors,
+  fetchFollowedInstructorIds,
+  followInstructor,
+  unfollowInstructor,
+} from "@/lib/supabase/queries";
 import type { InstructorProfile } from "@/types";
 
 export default function InstructorSearchPage() {
   const [instructors, setInstructors] = useState<InstructorProfile[]>([]);
+  const [followedIds, setFollowedIds] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
 
   useEffect(() => {
-    fetchAllInstructors()
-      .then(setInstructors)
-      .catch(() => setInstructors([]))
+    Promise.allSettled([fetchAllInstructors(), fetchFollowedInstructorIds()])
+      .then(([iResult, fResult]) => {
+        if (iResult.status === "fulfilled") setInstructors(iResult.value);
+        if (fResult.status === "fulfilled")
+          setFollowedIds(new Set(fResult.value));
+      })
       .finally(() => setLoading(false));
   }, []);
+
+  const handleToggleFollow = async (id: string) => {
+    const isFollowed = followedIds.has(id);
+    // Optimistic update
+    setFollowedIds((prev) => {
+      const next = new Set(prev);
+      if (isFollowed) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+    try {
+      if (isFollowed) await unfollowInstructor(id);
+      else await followInstructor(id);
+    } catch {
+      // Revert on error
+      setFollowedIds((prev) => {
+        const next = new Set(prev);
+        if (isFollowed) next.add(id);
+        else next.delete(id);
+        return next;
+      });
+    }
+  };
 
   const filtered = instructors.filter((inst) => {
     if (!search) return true;
@@ -49,34 +81,48 @@ export default function InstructorSearchPage() {
       </div>
 
       <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {filtered.map((inst) => (
-          <Link
-            key={inst.id}
-            href={`/instructors/${inst.id}`}
-            className="group rounded-xl border border-border bg-surface p-5 transition-all hover:border-accent hover:shadow-md"
-          >
-            {inst.photos.length > 0 && (
-              <img
-                src={inst.photos[0]}
-                alt={inst.full_name}
-                className="mb-3 h-32 w-full rounded-lg object-cover"
-              />
-            )}
-            <h3 className="font-semibold group-hover:text-accent transition-colors">
-              {inst.full_name}
-            </h3>
-            {inst.location && (
-              <p className="mt-0.5 text-xs text-muted">
-                📍 {inst.location}
-              </p>
-            )}
-            {inst.bio && (
-              <p className="mt-2 text-sm text-muted line-clamp-3">
-                {inst.bio}
-              </p>
-            )}
-          </Link>
-        ))}
+        {filtered.map((inst) => {
+          const isFollowed = followedIds.has(inst.id);
+          return (
+            <div
+              key={inst.id}
+              className="group rounded-xl border border-border bg-surface p-5 transition-all hover:border-accent hover:shadow-md"
+            >
+              <Link href={`/instructors/${inst.id}`}>
+                {inst.photos.length > 0 && (
+                  <img
+                    src={inst.photos[0]}
+                    alt={inst.full_name}
+                    className="mb-3 h-32 w-full rounded-lg object-cover"
+                  />
+                )}
+                <h3 className="font-semibold group-hover:text-accent transition-colors">
+                  {inst.full_name}
+                </h3>
+                {inst.location && (
+                  <p className="mt-0.5 text-xs text-muted">
+                    📍 {inst.location}
+                  </p>
+                )}
+                {inst.bio && (
+                  <p className="mt-2 text-sm text-muted line-clamp-3">
+                    {inst.bio}
+                  </p>
+                )}
+              </Link>
+              <button
+                onClick={() => handleToggleFollow(inst.id)}
+                className={`mt-3 w-full rounded-lg px-4 py-1.5 text-xs font-medium transition-colors ${
+                  isFollowed
+                    ? "bg-accent/10 text-accent hover:bg-red-50 hover:text-red-600"
+                    : "bg-accent text-white hover:bg-accent/80"
+                }`}
+              >
+                {isFollowed ? "Following ✓" : "Follow"}
+              </button>
+            </div>
+          );
+        })}
         {!loading && filtered.length === 0 && (
           <p className="col-span-full text-center text-muted py-12">
             No instructors found.

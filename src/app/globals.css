@@ -12,7 +12,12 @@
   --surface-hover: #fdf0e9;
   --muted: #a89f9a;
   --border: #e8ddd5;
-  --ocean-gradient: linear-gradient(135deg, #a8d8ea 0%, #e8a0bf 50%, #f2c4d6 100%);
+  --ocean-gradient: linear-gradient(
+    135deg,
+    #a8d8ea 0%,
+    #e8a0bf 50%,
+    #f2c4d6 100%
+  );
   --ocean-soft: linear-gradient(180deg, #faf6f1 0%, #fdf0e9 100%);
 }
 
@@ -45,7 +50,12 @@
     --surface-hover: #3a302b;
     --muted: #8a7e78;
     --border: #4a3f3a;
-    --ocean-gradient: linear-gradient(135deg, #2a4a5a 0%, #8a5070 50%, #c48aa0 100%);
+    --ocean-gradient: linear-gradient(
+      135deg,
+      #2a4a5a 0%,
+      #8a5070 50%,
+      #c48aa0 100%
+    );
     --ocean-soft: linear-gradient(180deg, #1f1a17 0%, #2c2420 100%);
   }
 }

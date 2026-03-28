@@ -25,9 +25,7 @@ export default function AdminSeriesPage() {
         View all series ordered by date created.
       </p>
 
-      {loading && (
-        <p className="mt-8 text-sm text-muted">Loading series…</p>
-      )}
+      {loading && <p className="mt-8 text-sm text-muted">Loading series…</p>}
 
       <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {sorted.map((series) => (
@@ -41,9 +39,7 @@ export default function AdminSeriesPage() {
             </p>
             <div className="mt-3 flex items-center justify-between text-xs text-muted">
               <span>{series.classes.length} classes</span>
-              <span>
-                {new Date(series.created_at).toLocaleDateString()}
-              </span>
+              <span>{new Date(series.created_at).toLocaleDateString()}</span>
             </div>
             <div className="mt-3 flex gap-3 border-t border-border pt-3">
               <Link

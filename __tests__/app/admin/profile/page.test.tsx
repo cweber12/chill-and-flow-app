@@ -7,7 +7,13 @@ const { mockProfile } = vi.hoisted(() => ({
     full_name: "Sage Rivera",
     bio: "Certified yoga teacher specializing in vinyasa and meditation.",
     location: "Sedona, AZ",
-    photos: ["https://example.com/photo1.jpg", "https://example.com/photo2.jpg"],
+    city: "Sedona",
+    state: "AZ",
+    zip: "86336",
+    photos: [
+      "https://example.com/photo1.jpg",
+      "https://example.com/photo2.jpg",
+    ],
     created_at: "2026-01-01T00:00:00Z",
     updated_at: "2026-03-01T00:00:00Z",
   },
@@ -26,7 +32,7 @@ vi.mock("@/hooks/use-auth", () => ({
 vi.mock("@/lib/supabase/queries", () => ({
   fetchInstructorById: vi.fn().mockResolvedValue(mockProfile),
   upsertInstructorProfile: vi.fn(),
-  uploadInstructorPhoto: vi.fn(),
+  uploadPhoto: vi.fn(),
 }));
 
 import InstructorProfilePage from "@/app/admin/profile/page";
@@ -48,7 +54,6 @@ describe("Instructor profile page", () => {
     await waitFor(() => {
       expect(screen.getByLabelText("Full Name")).toBeDefined();
       expect(screen.getByLabelText("Bio")).toBeDefined();
-      expect(screen.getByLabelText("Location")).toBeDefined();
     });
     expect((screen.getByLabelText("Full Name") as HTMLInputElement).value).toBe(
       "Sage Rivera",
@@ -56,9 +61,6 @@ describe("Instructor profile page", () => {
     expect((screen.getByLabelText("Bio") as HTMLTextAreaElement).value).toBe(
       "Certified yoga teacher specializing in vinyasa and meditation.",
     );
-    expect(
-      (screen.getByLabelText("Location") as HTMLInputElement).value,
-    ).toBe("Sedona, AZ");
   });
 
   it("renders photo gallery section", async () => {

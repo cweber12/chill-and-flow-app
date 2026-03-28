@@ -6,6 +6,13 @@ import {
   fetchAllClasses,
   fetchAllSeries,
   fetchAllInstructors,
+  fetchFollowedInstructorIds,
+  enrollInClass,
+  unenrollFromClass,
+  enrollInSeries,
+  unenrollFromSeries,
+  fetchMyClassEnrollments,
+  fetchMySeriesEnrollments,
 } from "@/lib/supabase/queries";
 import { CLASS_TYPES, DIFFICULTIES, capitalize } from "@/lib/constants";
 import type {
@@ -14,6 +21,8 @@ import type {
   InstructorProfile,
   YogaClass,
   YogaSeries,
+  ClassEnrollment,
+  SeriesEnrollment,
 } from "@/types";
 
 const DURATION_RANGES = [
@@ -31,6 +40,13 @@ export default function BrowseClassesPage() {
   const [allClasses, setAllClasses] = useState<YogaClass[]>([]);
   const [allSeries, setAllSeries] = useState<YogaSeries[]>([]);
   const [instructors, setInstructors] = useState<InstructorProfile[]>([]);
+  const [followedIds, setFollowedIds] = useState<string[]>([]);
+  const [classEnrollments, setClassEnrollments] = useState<ClassEnrollment[]>(
+    [],
+  );
+  const [seriesEnrollments, setSeriesEnrollments] = useState<
+    SeriesEnrollment[]
+  >([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [typeFilter, setTypeFilter] = useState<ClassType | "all">("all");
@@ -40,22 +56,42 @@ export default function BrowseClassesPage() {
   const [durationIndex, setDurationIndex] = useState(0);
   const [instructorFilter, setInstructorFilter] = useState("all");
   const [locationFilter, setLocationFilter] = useState("all");
+  const [showFollowedOnly, setShowFollowedOnly] = useState(false);
 
   useEffect(() => {
     Promise.allSettled([
       fetchAllClasses(),
       fetchAllSeries(),
       fetchAllInstructors(),
+      fetchFollowedInstructorIds(),
+      fetchMyClassEnrollments(),
+      fetchMySeriesEnrollments(),
     ])
-      .then(([cResult, sResult, iResult]) => {
+      .then(([cResult, sResult, iResult, fResult, ceResult, seResult]) => {
         if (cResult.status === "fulfilled") setAllClasses(cResult.value);
         if (sResult.status === "fulfilled") setAllSeries(sResult.value);
         if (iResult.status === "fulfilled") setInstructors(iResult.value);
+        if (fResult.status === "fulfilled") setFollowedIds(fResult.value);
+        if (ceResult.status === "fulfilled")
+          setClassEnrollments(ceResult.value);
+        if (seResult.status === "fulfilled")
+          setSeriesEnrollments(seResult.value);
       })
       .finally(() => setLoading(false));
   }, []);
 
   const instructorMap = new Map(instructors.map((i) => [i.id, i]));
+  const followedSet = new Set(followedIds);
+  const enrolledClassIds = new Set(
+    classEnrollments
+      .filter((e) => e.status === "enrolled")
+      .map((e) => e.class_id),
+  );
+  const enrolledSeriesIds = new Set(
+    seriesEnrollments
+      .filter((e) => e.status === "enrolled")
+      .map((e) => e.series_id),
+  );
 
   const locations = [
     ...new Set(allClasses.map((c) => c.location).filter(Boolean)),
@@ -77,13 +113,16 @@ export default function BrowseClassesPage() {
       instructorFilter === "all" || cls.instructor_id === instructorFilter;
     const matchesLocation =
       locationFilter === "all" || cls.location === locationFilter;
+    const matchesFollowed =
+      !showFollowedOnly || followedSet.has(cls.instructor_id);
     return (
       matchesSearch &&
       matchesType &&
       matchesDifficulty &&
       matchesDuration &&
       matchesInstructor &&
-      matchesLocation
+      matchesLocation &&
+      matchesFollowed
     );
   });
 
@@ -94,7 +133,9 @@ export default function BrowseClassesPage() {
       s.description.toLowerCase().includes(search.toLowerCase());
     const matchesInstructor =
       instructorFilter === "all" || s.instructor_id === instructorFilter;
-    return matchesSearch && matchesInstructor;
+    const matchesFollowed =
+      !showFollowedOnly || followedSet.has(s.instructor_id);
+    return matchesSearch && matchesInstructor && matchesFollowed;
   });
 
   return (
@@ -104,9 +145,7 @@ export default function BrowseClassesPage() {
         Find the perfect class or series for your practice.
       </p>
 
-      {loading && (
-        <p className="mt-8 text-sm text-muted">Loading…</p>
-      )}
+      {loading && <p className="mt-8 text-sm text-muted">Loading…</p>}
 
       {/* Tabs */}
       <div className="mt-6 flex gap-1 rounded-lg bg-surface-hover p-1 w-fit">
@@ -134,6 +173,18 @@ export default function BrowseClassesPage() {
 
       {/* Filters */}
       <div className="mt-6 flex flex-wrap gap-3">
+        {followedIds.length > 0 && (
+          <button
+            onClick={() => setShowFollowedOnly(!showFollowedOnly)}
+            className={`rounded-lg px-4 py-2.5 text-sm font-medium transition-colors ${
+              showFollowedOnly
+                ? "bg-accent text-white"
+                : "border border-border bg-surface text-muted hover:text-foreground"
+            }`}
+          >
+            Following Only
+          </button>
+        )}
         <input
           type="text"
           value={search}
@@ -161,9 +212,7 @@ export default function BrowseClassesPage() {
             <select
               value={difficultyFilter}
               onChange={(e) =>
-                setDifficultyFilter(
-                  e.target.value as ClassDifficulty | "all",
-                )
+                setDifficultyFilter(e.target.value as ClassDifficulty | "all")
               }
               aria-label="Filter by difficulty"
               className="rounded-lg border border-border bg-surface px-4 py-2.5 text-sm outline-none focus:border-accent focus:ring-1 focus:ring-accent"
@@ -237,6 +286,27 @@ export default function BrowseClassesPage() {
                   instructorName={
                     instructorMap.get(cls.instructor_id)?.full_name
                   }
+                  enrolled={enrolledClassIds.has(cls.id)}
+                  onEnrollToggle={async () => {
+                    if (enrolledClassIds.has(cls.id)) {
+                      await unenrollFromClass(cls.id);
+                      setClassEnrollments((prev) =>
+                        prev.filter((e) => e.class_id !== cls.id),
+                      );
+                    } else {
+                      await enrollInClass(cls.id);
+                      setClassEnrollments((prev) => [
+                        ...prev,
+                        {
+                          id: crypto.randomUUID(),
+                          user_id: "",
+                          class_id: cls.id,
+                          status: "enrolled",
+                          created_at: new Date().toISOString(),
+                        },
+                      ]);
+                    }
+                  }}
                 />
               ))}
             </div>
@@ -248,24 +318,63 @@ export default function BrowseClassesPage() {
         ) : (
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {filteredSeries.map((s) => (
-              <Link
+              <div
                 key={s.id}
-                href={`/series/${s.id}`}
                 className="rounded-xl border border-border bg-surface p-5 transition-all hover:border-accent hover:shadow-md"
               >
-                <h3 className="font-semibold">{s.title}</h3>
-                <p className="mt-1 text-sm text-muted line-clamp-2">
-                  {s.description}
-                </p>
+                <Link href={`/series/${s.id}`}>
+                  {s.image_url && (
+                    <img
+                      src={s.image_url}
+                      alt={s.title}
+                      className="mb-3 h-32 w-full rounded-lg object-cover"
+                    />
+                  )}
+                  <h3 className="font-semibold">{s.title}</h3>
+                  <p className="mt-1 text-sm text-muted line-clamp-2">
+                    {s.description}
+                  </p>
+                </Link>
                 <div className="mt-3 flex items-center justify-between text-xs text-muted">
                   <span>{s.classes.length} classes</span>
-                  {instructorMap.get(s.instructor_id)?.full_name && (
-                    <span>
-                      {instructorMap.get(s.instructor_id)!.full_name}
-                    </span>
-                  )}
+                  <div className="flex items-center gap-2">
+                    {instructorMap.get(s.instructor_id)?.full_name && (
+                      <span>
+                        {instructorMap.get(s.instructor_id)!.full_name}
+                      </span>
+                    )}
+                    <button
+                      onClick={async () => {
+                        if (enrolledSeriesIds.has(s.id)) {
+                          await unenrollFromSeries(s.id);
+                          setSeriesEnrollments((prev) =>
+                            prev.filter((e) => e.series_id !== s.id),
+                          );
+                        } else {
+                          await enrollInSeries(s.id);
+                          setSeriesEnrollments((prev) => [
+                            ...prev,
+                            {
+                              id: crypto.randomUUID(),
+                              user_id: "",
+                              series_id: s.id,
+                              status: "enrolled",
+                              created_at: new Date().toISOString(),
+                            },
+                          ]);
+                        }
+                      }}
+                      className={`rounded-lg px-3 py-1 text-xs font-medium transition-colors ${
+                        enrolledSeriesIds.has(s.id)
+                          ? "bg-accent/10 text-accent"
+                          : "bg-accent text-white hover:bg-accent/80"
+                      }`}
+                    >
+                      {enrolledSeriesIds.has(s.id) ? "Enrolled ✓" : "Enroll"}
+                    </button>
+                  </div>
                 </div>
-              </Link>
+              </div>
             ))}
           </div>
         )}
@@ -277,15 +386,35 @@ export default function BrowseClassesPage() {
 function BrowseClassCard({
   yogaClass,
   instructorName,
+  enrolled,
+  onEnrollToggle,
 }: {
   yogaClass: YogaClass;
   instructorName?: string;
+  enrolled: boolean;
+  onEnrollToggle: () => Promise<void>;
 }) {
-  const [registered, setRegistered] = useState(false);
+  const [toggling, setToggling] = useState(false);
+
+  const handleToggle = async () => {
+    setToggling(true);
+    try {
+      await onEnrollToggle();
+    } finally {
+      setToggling(false);
+    }
+  };
 
   return (
     <div className="rounded-xl border border-border bg-surface p-5 transition-all hover:border-accent hover:shadow-md">
       <Link href={`/classes/${yogaClass.id}`}>
+        {yogaClass.image_url && (
+          <img
+            src={yogaClass.image_url}
+            alt={yogaClass.title}
+            className="mb-3 h-32 w-full rounded-lg object-cover"
+          />
+        )}
         <div className="flex items-center gap-2 mb-2">
           <span className="inline-block rounded-full bg-accent/10 px-2.5 py-0.5 text-xs font-medium text-accent">
             {yogaClass.type}
@@ -309,14 +438,15 @@ function BrowseClassCard({
           )}
         </div>
         <button
-          onClick={() => setRegistered(!registered)}
-          className={`rounded-lg px-4 py-1.5 text-xs font-medium transition-colors ${
-            registered
+          onClick={handleToggle}
+          disabled={toggling}
+          className={`rounded-lg px-4 py-1.5 text-xs font-medium transition-colors disabled:opacity-50 ${
+            enrolled
               ? "bg-accent/10 text-accent"
-              : "bg-accent text-white hover:bg-accent-dark"
+              : "bg-accent text-white hover:bg-accent/80"
           }`}
         >
-          {registered ? "Registered ✓" : "Register"}
+          {enrolled ? "Enrolled ✓" : "Enroll"}
         </button>
       </div>
     </div>

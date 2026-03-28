@@ -20,9 +20,7 @@ const CLASS_TITLE_BANK = [
 ] as const;
 
 export function getPlaceholderTitle(): string {
-  return CLASS_TITLE_BANK[
-    Math.floor(Math.random() * CLASS_TITLE_BANK.length)
-  ];
+  return CLASS_TITLE_BANK[Math.floor(Math.random() * CLASS_TITLE_BANK.length)];
 }
 
 // ── Mock classes ──────────────────────────────────────────

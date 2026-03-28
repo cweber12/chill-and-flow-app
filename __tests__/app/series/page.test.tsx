@@ -17,12 +17,16 @@ vi.mock("@/hooks/use-auth", () => ({
 }));
 
 vi.mock("@/lib/supabase/queries", () => ({
-  fetchSeriesById: vi.fn().mockImplementation((id: string) =>
-    Promise.resolve(MOCK_ALL_SERIES.find((s) => s.id === id) ?? null),
-  ),
-  fetchClassById: vi.fn().mockImplementation((id: string) =>
-    Promise.resolve(MOCK_ALL_CLASSES.find((c) => c.id === id) ?? null),
-  ),
+  fetchSeriesById: vi
+    .fn()
+    .mockImplementation((id: string) =>
+      Promise.resolve(MOCK_ALL_SERIES.find((s) => s.id === id) ?? null),
+    ),
+  fetchClassById: vi
+    .fn()
+    .mockImplementation((id: string) =>
+      Promise.resolve(MOCK_ALL_CLASSES.find((c) => c.id === id) ?? null),
+    ),
 }));
 
 import SeriesDetailPage from "@/app/series/[id]/page";

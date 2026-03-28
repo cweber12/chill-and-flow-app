@@ -5,7 +5,14 @@
  */
 
 import { createClient } from "./client";
-import type { YogaClass, YogaSeries, InstructorProfile } from "@/types";
+import type {
+  YogaClass,
+  YogaSeries,
+  InstructorProfile,
+  StudentProfile,
+  ClassEnrollment,
+  SeriesEnrollment,
+} from "@/types";
 
 // ── Types returned by the join query ─────────────────────────────────────────
 
@@ -111,7 +118,7 @@ export async function fetchSeriesById(id: string): Promise<YogaSeries | null> {
 }
 
 export async function createSeries(
-  values: Pick<YogaSeries, "title" | "description">,
+  values: Pick<YogaSeries, "title" | "description"> & { image_url?: string },
 ): Promise<YogaSeries> {
   const supabase = createClient();
   const {
@@ -130,7 +137,9 @@ export async function createSeries(
 
 export async function updateSeries(
   id: string,
-  values: Partial<Pick<YogaSeries, "title" | "description">>,
+  values: Partial<
+    Pick<YogaSeries, "title" | "description"> & { image_url?: string }
+  >,
 ): Promise<void> {
   const supabase = createClient();
   const { error } = await supabase
@@ -228,21 +237,217 @@ export async function fetchSeriesByInstructor(
 }
 
 /**
- * Uploads a photo to the instructor_photos bucket and returns its public URL.
+ * Uploads a photo to the photos bucket and returns its public URL.
+ * Used for both instructor and student profile photos.
  */
-export async function uploadInstructorPhoto(file: File): Promise<string> {
+export async function uploadPhoto(file: File): Promise<string> {
   const supabase = createClient();
   const ext = file.name.split(".").pop() ?? "jpg";
   const path = `${crypto.randomUUID()}.${ext}`;
 
   const { error } = await supabase.storage
-    .from("instructor_photos")
+    .from("photos")
     .upload(path, file, { upsert: false, contentType: file.type });
   if (error) throw new Error(error.message);
 
   const {
     data: { publicUrl },
-  } = supabase.storage.from("instructor_photos").getPublicUrl(path);
+  } = supabase.storage.from("photos").getPublicUrl(path);
 
   return publicUrl;
+}
+
+/**
+ * @deprecated Use uploadPhoto() which uses the shared "photos" bucket.
+ */
+export async function uploadInstructorPhoto(file: File): Promise<string> {
+  return uploadPhoto(file);
+}
+
+// ── Student Profiles ──────────────────────────────────────────────────────────
+
+export async function fetchStudentProfile(
+  id: string,
+): Promise<StudentProfile | null> {
+  const supabase = createClient();
+  const { data, error } = await supabase
+    .from("student_profiles")
+    .select("*")
+    .eq("id", id)
+    .single();
+  if (error) return null;
+  return data as StudentProfile;
+}
+
+export async function upsertStudentProfile(
+  values: Omit<StudentProfile, "created_at" | "updated_at">,
+): Promise<StudentProfile> {
+  const supabase = createClient();
+  const { data, error } = await supabase
+    .from("student_profiles")
+    .upsert({ ...values, updated_at: new Date().toISOString() })
+    .select()
+    .single();
+  if (error) throw new Error(error.message);
+  return data as StudentProfile;
+}
+
+// ── Follows ───────────────────────────────────────────────────────────────────
+
+export async function followInstructor(instructorId: string): Promise<void> {
+  const supabase = createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) throw new Error("Not authenticated");
+  const { error } = await supabase
+    .from("instructor_follows")
+    .insert({ user_id: user.id, instructor_id: instructorId });
+  if (error) throw new Error(error.message);
+}
+
+export async function unfollowInstructor(instructorId: string): Promise<void> {
+  const supabase = createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) throw new Error("Not authenticated");
+  const { error } = await supabase
+    .from("instructor_follows")
+    .delete()
+    .eq("user_id", user.id)
+    .eq("instructor_id", instructorId);
+  if (error) throw new Error(error.message);
+}
+
+export async function fetchFollowedInstructorIds(): Promise<string[]> {
+  const supabase = createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return [];
+  const { data, error } = await supabase
+    .from("instructor_follows")
+    .select("instructor_id")
+    .eq("user_id", user.id);
+  if (error) return [];
+  return data.map((r) => r.instructor_id);
+}
+
+export async function fetchFollowerCount(
+  instructorId: string,
+): Promise<number> {
+  const supabase = createClient();
+  const { count, error } = await supabase
+    .from("instructor_follows")
+    .select("*", { count: "exact", head: true })
+    .eq("instructor_id", instructorId);
+  if (error) return 0;
+  return count ?? 0;
+}
+
+// ── Class Enrollments ─────────────────────────────────────────────────────────
+
+export async function enrollInClass(classId: string): Promise<void> {
+  const supabase = createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) throw new Error("Not authenticated");
+  const { error } = await supabase
+    .from("class_enrollments")
+    .insert({ user_id: user.id, class_id: classId });
+  if (error) throw new Error(error.message);
+}
+
+export async function unenrollFromClass(classId: string): Promise<void> {
+  const supabase = createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) throw new Error("Not authenticated");
+  const { error } = await supabase
+    .from("class_enrollments")
+    .delete()
+    .eq("user_id", user.id)
+    .eq("class_id", classId);
+  if (error) throw new Error(error.message);
+}
+
+export async function completeClass(classId: string): Promise<void> {
+  const supabase = createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) throw new Error("Not authenticated");
+  const { error } = await supabase
+    .from("class_enrollments")
+    .update({ status: "completed" })
+    .eq("user_id", user.id)
+    .eq("class_id", classId);
+  if (error) throw new Error(error.message);
+}
+
+export async function fetchMyClassEnrollments(): Promise<ClassEnrollment[]> {
+  const supabase = createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return [];
+  const { data, error } = await supabase
+    .from("class_enrollments")
+    .select("*")
+    .eq("user_id", user.id)
+    .order("created_at", { ascending: false });
+  if (error) return [];
+  return data as ClassEnrollment[];
+}
+
+// ── Series Enrollments ────────────────────────────────────────────────────────
+
+export async function enrollInSeries(seriesId: string): Promise<void> {
+  const supabase = createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) throw new Error("Not authenticated");
+  const { error } = await supabase
+    .from("series_enrollments")
+    .insert({ user_id: user.id, series_id: seriesId });
+  if (error) throw new Error(error.message);
+}
+
+export async function unenrollFromSeries(seriesId: string): Promise<void> {
+  const supabase = createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) throw new Error("Not authenticated");
+  const { error } = await supabase
+    .from("series_enrollments")
+    .delete()
+    .eq("user_id", user.id)
+    .eq("series_id", seriesId);
+  if (error) throw new Error(error.message);
+}
+
+export async function fetchMySeriesEnrollments(): Promise<SeriesEnrollment[]> {
+  const supabase = createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return [];
+  const { data, error } = await supabase
+    .from("series_enrollments")
+    .select("*")
+    .eq("user_id", user.id)
+    .order("created_at", { ascending: false });
+  if (error) return [];
+  return data as SeriesEnrollment[];
+}
+
+// ── Image uploads (class/series backgrounds) ─────────────────────────────────
+
+export async function uploadImage(file: File): Promise<string> {
+  return uploadPhoto(file);
 }

@@ -31,6 +31,9 @@ vi.mock("next/navigation", () => ({
 
 vi.mock("@/lib/supabase/queries", () => ({
   fetchAllInstructors: vi.fn().mockResolvedValue(mockInstructors),
+  fetchFollowedInstructorIds: vi.fn().mockResolvedValue([]),
+  followInstructor: vi.fn().mockResolvedValue(undefined),
+  unfollowInstructor: vi.fn().mockResolvedValue(undefined),
 }));
 
 import InstructorSearchPage from "@/app/dashboard/instructors/page";

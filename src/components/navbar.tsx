@@ -66,6 +66,9 @@ export function Navbar() {
                 <NavLink href="/dashboard/instructors" current={pathname}>
                   Instructors
                 </NavLink>
+                <NavLink href="/dashboard/profile" current={pathname}>
+                  Profile
+                </NavLink>
               </>
             )}
             <button
@@ -141,7 +144,12 @@ function NavDropdown({
           stroke="currentColor"
           viewBox="0 0 24 24"
         >
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 9l-7 7-7-7" />
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={2.5}
+            d="M19 9l-7 7-7-7"
+          />
         </svg>
       </button>
 
@@ -153,7 +161,9 @@ function NavDropdown({
               href={item.href}
               onClick={() => setOpen(false)}
               className={`block px-4 py-2.5 text-sm transition-colors first:rounded-t-lg last:rounded-b-lg hover:bg-accent/10 ${
-                current === item.href ? "text-accent font-medium" : "text-muted hover:text-foreground"
+                current === item.href
+                  ? "text-accent font-medium"
+                  : "text-muted hover:text-foreground"
               }`}
             >
               {item.label}
@@ -164,4 +174,3 @@ function NavDropdown({
     </div>
   );
 }
-

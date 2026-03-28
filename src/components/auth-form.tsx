@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
+import type { UserRole } from "@/types";
 
 interface AuthFormProps {
   onSuccess: () => void;
@@ -9,6 +10,7 @@ interface AuthFormProps {
 
 export function AuthForm({ onSuccess }: AuthFormProps) {
   const [mode, setMode] = useState<"login" | "register">("login");
+  const [role, setRole] = useState<UserRole>("user");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [fullName, setFullName] = useState("");
@@ -29,7 +31,7 @@ export function AuthForm({ onSuccess }: AuthFormProps) {
           password,
           options: {
             data: {
-              role: "user",
+              role,
               full_name: fullName,
             },
           },
@@ -44,8 +46,7 @@ export function AuthForm({ onSuccess }: AuthFormProps) {
       }
       onSuccess();
     } catch (err: unknown) {
-      const message =
-        err instanceof Error ? err.message : "An error occurred";
+      const message = err instanceof Error ? err.message : "An error occurred";
       setError(message);
     } finally {
       setLoading(false);
@@ -54,6 +55,34 @@ export function AuthForm({ onSuccess }: AuthFormProps) {
 
   return (
     <div className="w-full max-w-md mx-auto">
+      {/* Role selector tabs — only shown on register */}
+      {mode === "register" && (
+        <div className="flex mb-6 rounded-xl overflow-hidden border border-border">
+          <button
+            type="button"
+            onClick={() => setRole("user")}
+            className={`flex-1 py-3 text-sm font-medium transition-colors ${
+              role === "user"
+                ? "bg-accent text-white"
+                : "bg-surface text-muted hover:bg-surface-hover"
+            }`}
+          >
+            Student
+          </button>
+          <button
+            type="button"
+            onClick={() => setRole("admin")}
+            className={`flex-1 py-3 text-sm font-medium transition-colors ${
+              role === "admin"
+                ? "bg-accent text-white"
+                : "bg-surface text-muted hover:bg-surface-hover"
+            }`}
+          >
+            Instructor
+          </button>
+        </div>
+      )}
+
       {/* Login/Register toggle */}
       <div className="flex mb-8 gap-4 justify-center">
         <button

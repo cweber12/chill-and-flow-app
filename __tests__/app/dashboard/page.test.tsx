@@ -14,6 +14,9 @@ vi.mock("@/hooks/use-auth", () => ({
 
 vi.mock("@/lib/supabase/queries", () => ({
   fetchAllClasses: vi.fn().mockResolvedValue(MOCK_ALL_CLASSES),
+  fetchAllSeries: vi.fn().mockResolvedValue([]),
+  fetchMyClassEnrollments: vi.fn().mockResolvedValue([]),
+  fetchMySeriesEnrollments: vi.fn().mockResolvedValue([]),
 }));
 
 import DashboardPage from "@/app/dashboard/page";
@@ -37,7 +40,7 @@ describe("User dashboard", () => {
     });
     render(<DashboardPage />);
     expect(screen.getByText("Welcome, Student")).toBeDefined();
-    expect(screen.getByText("My Classes")).toBeDefined();
-    expect(screen.getByText("Browse more →")).toBeDefined();
+    expect(screen.getByText("Classes")).toBeDefined();
+    expect(screen.getByText("Series")).toBeDefined();
   });
 });

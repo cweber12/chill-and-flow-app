@@ -35,9 +35,7 @@ export default function AdminClassesPage() {
         Browse all uploaded classes grouped by type.
       </p>
 
-      {loading && (
-        <p className="mt-8 text-sm text-muted">Loading classes…</p>
-      )}
+      {loading && <p className="mt-8 text-sm text-muted">Loading classes…</p>}
 
       {/* Type filter tabs */}
       <div className="mt-8 flex flex-wrap gap-2">
@@ -73,9 +71,7 @@ export default function AdminClassesPage() {
           if (!classes || classes.length === 0) return null;
           return (
             <section key={type}>
-              <h2 className="text-xl font-semibold capitalize mb-4">
-                {type}
-              </h2>
+              <h2 className="text-xl font-semibold capitalize mb-4">{type}</h2>
               <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                 {classes.map((cls) => (
                   <div
@@ -95,7 +91,9 @@ export default function AdminClassesPage() {
                       {cls.description}
                     </p>
                     <div className="mt-3 flex items-center justify-between">
-                      <p className="text-xs text-muted">{cls.duration_minutes} min</p>
+                      <p className="text-xs text-muted">
+                        {cls.duration_minutes} min
+                      </p>
                       <div className="flex gap-2">
                         <Link
                           href={`/classes/${cls.id}`}

@@ -20,6 +20,13 @@ vi.mock("@/lib/supabase/queries", () => ({
   fetchAllClasses: vi.fn().mockResolvedValue(MOCK_ALL_CLASSES),
   fetchAllSeries: vi.fn().mockResolvedValue(MOCK_ALL_SERIES),
   fetchAllInstructors: vi.fn().mockResolvedValue([]),
+  fetchFollowedInstructorIds: vi.fn().mockResolvedValue([]),
+  fetchMyClassEnrollments: vi.fn().mockResolvedValue([]),
+  fetchMySeriesEnrollments: vi.fn().mockResolvedValue([]),
+  enrollInClass: vi.fn().mockResolvedValue(undefined),
+  unenrollFromClass: vi.fn().mockResolvedValue(undefined),
+  enrollInSeries: vi.fn().mockResolvedValue(undefined),
+  unenrollFromSeries: vi.fn().mockResolvedValue(undefined),
 }));
 
 import BrowseClassesPage from "@/app/dashboard/browse/page";
