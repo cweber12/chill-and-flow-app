@@ -25,6 +25,15 @@ interface SeriesRow {
   series_classes: { class_id: string; position: number }[];
 }
 
+async function getAuthenticatedUser() {
+  const supabase = createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) throw new Error("Not authenticated");
+  return { supabase, user };
+}
+
 // ── Classes ───────────────────────────────────────────────────────────────────
 
 export async function fetchAllClasses(): Promise<YogaClass[]> {
@@ -48,14 +57,21 @@ export async function fetchClassById(id: string): Promise<YogaClass | null> {
   return data as YogaClass;
 }
 
+export async function fetchClassesByIds(ids: string[]): Promise<YogaClass[]> {
+  if (ids.length === 0) return [];
+  const supabase = createClient();
+  const { data, error } = await supabase
+    .from("yoga_classes")
+    .select("*")
+    .in("id", ids);
+  if (error) throw new Error(error.message);
+  return data as YogaClass[];
+}
+
 export async function createClass(
   values: Omit<YogaClass, "id" | "created_at" | "instructor_id">,
 ): Promise<YogaClass> {
-  const supabase = createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) throw new Error("Not authenticated");
+  const { supabase, user } = await getAuthenticatedUser();
 
   const { data, error } = await supabase
     .from("yoga_classes")
@@ -120,11 +136,7 @@ export async function fetchSeriesById(id: string): Promise<YogaSeries | null> {
 export async function createSeries(
   values: Pick<YogaSeries, "title" | "description"> & { image_url?: string },
 ): Promise<YogaSeries> {
-  const supabase = createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) throw new Error("Not authenticated");
+  const { supabase, user } = await getAuthenticatedUser();
 
   const { data, error } = await supabase
     .from("yoga_series")
@@ -295,11 +307,7 @@ export async function upsertStudentProfile(
 // ── Follows ───────────────────────────────────────────────────────────────────
 
 export async function followInstructor(instructorId: string): Promise<void> {
-  const supabase = createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) throw new Error("Not authenticated");
+  const { supabase, user } = await getAuthenticatedUser();
   const { error } = await supabase
     .from("instructor_follows")
     .insert({ user_id: user.id, instructor_id: instructorId });
@@ -307,11 +315,7 @@ export async function followInstructor(instructorId: string): Promise<void> {
 }
 
 export async function unfollowInstructor(instructorId: string): Promise<void> {
-  const supabase = createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) throw new Error("Not authenticated");
+  const { supabase, user } = await getAuthenticatedUser();
   const { error } = await supabase
     .from("instructor_follows")
     .delete()
@@ -349,11 +353,7 @@ export async function fetchFollowerCount(
 // ── Class Enrollments ─────────────────────────────────────────────────────────
 
 export async function enrollInClass(classId: string): Promise<void> {
-  const supabase = createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) throw new Error("Not authenticated");
+  const { supabase, user } = await getAuthenticatedUser();
   const { error } = await supabase
     .from("class_enrollments")
     .insert({ user_id: user.id, class_id: classId });
@@ -361,11 +361,7 @@ export async function enrollInClass(classId: string): Promise<void> {
 }
 
 export async function unenrollFromClass(classId: string): Promise<void> {
-  const supabase = createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) throw new Error("Not authenticated");
+  const { supabase, user } = await getAuthenticatedUser();
   const { error } = await supabase
     .from("class_enrollments")
     .delete()
@@ -375,11 +371,7 @@ export async function unenrollFromClass(classId: string): Promise<void> {
 }
 
 export async function completeClass(classId: string): Promise<void> {
-  const supabase = createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) throw new Error("Not authenticated");
+  const { supabase, user } = await getAuthenticatedUser();
   const { error } = await supabase
     .from("class_enrollments")
     .update({ status: "completed" })
@@ -406,11 +398,7 @@ export async function fetchMyClassEnrollments(): Promise<ClassEnrollment[]> {
 // ── Series Enrollments ────────────────────────────────────────────────────────
 
 export async function enrollInSeries(seriesId: string): Promise<void> {
-  const supabase = createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) throw new Error("Not authenticated");
+  const { supabase, user } = await getAuthenticatedUser();
   const { error } = await supabase
     .from("series_enrollments")
     .insert({ user_id: user.id, series_id: seriesId });
@@ -418,11 +406,7 @@ export async function enrollInSeries(seriesId: string): Promise<void> {
 }
 
 export async function unenrollFromSeries(seriesId: string): Promise<void> {
-  const supabase = createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) throw new Error("Not authenticated");
+  const { supabase, user } = await getAuthenticatedUser();
   const { error } = await supabase
     .from("series_enrollments")
     .delete()

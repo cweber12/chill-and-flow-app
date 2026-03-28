@@ -22,10 +22,14 @@ vi.mock("@/lib/supabase/queries", () => ({
     .mockImplementation((id: string) =>
       Promise.resolve(MOCK_ALL_SERIES.find((s) => s.id === id) ?? null),
     ),
-  fetchClassById: vi
+  fetchClassesByIds: vi
     .fn()
-    .mockImplementation((id: string) =>
-      Promise.resolve(MOCK_ALL_CLASSES.find((c) => c.id === id) ?? null),
+    .mockImplementation((ids: string[]) =>
+      Promise.resolve(
+        ids
+          .map((id) => MOCK_ALL_CLASSES.find((c) => c.id === id))
+          .filter(Boolean),
+      ),
     ),
 }));
 
@@ -37,7 +41,7 @@ describe("Series detail page", () => {
       render(<SeriesDetailPage params={Promise.resolve({ id: "s1" })} />);
     });
     expect(screen.getByText("7-Day Beginner Journey")).toBeDefined();
-    expect(screen.getByText("← Back to series")).toBeDefined();
+    expect(screen.getByText("← Back to browse")).toBeDefined();
     expect(screen.getByText("Day 1")).toBeDefined();
     expect(screen.getByText("Day 7")).toBeDefined();
   });

@@ -179,7 +179,10 @@ function EditSeriesForm({ series }: { series: YogaSeries }) {
         </div>
 
         {message && (
-          <p className="text-sm text-accent" role="status">
+          <p
+            className={`text-sm ${message.includes("success") ? "text-green-600" : "text-red-500"}`}
+            role="alert"
+          >
             {message}
           </p>
         )}

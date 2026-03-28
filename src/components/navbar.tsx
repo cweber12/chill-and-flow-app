@@ -8,6 +8,7 @@ import { usePathname } from "next/navigation";
 export function Navbar() {
   const { user, role, loading, signOut } = useAuth();
   const pathname = usePathname();
+  const [mobileOpen, setMobileOpen] = useState(false);
 
   if (loading) return null;
 
@@ -29,58 +30,208 @@ export function Navbar() {
         </Link>
 
         {user && (
-          <div className="flex items-center gap-6">
-            {isAdmin ? (
-              <>
-                <NavLink href="/admin" current={pathname}>
-                  Dashboard
-                </NavLink>
-                <NavDropdown
-                  label="Classes"
-                  current={pathname}
-                  items={[
-                    { label: "View All", href: "/admin/classes" },
-                    { label: "Create New", href: "/admin/create-class" },
-                  ]}
-                />
-                <NavDropdown
-                  label="Series"
-                  current={pathname}
-                  items={[
-                    { label: "View All", href: "/admin/series" },
-                    { label: "Create New", href: "/admin/create-series" },
-                  ]}
-                />
-                <NavLink href="/admin/profile" current={pathname}>
-                  Profile
-                </NavLink>
-              </>
-            ) : (
-              <>
-                <NavLink href="/dashboard" current={pathname}>
-                  My Classes
-                </NavLink>
-                <NavLink href="/dashboard/browse" current={pathname}>
-                  Browse
-                </NavLink>
-                <NavLink href="/dashboard/instructors" current={pathname}>
-                  Instructors
-                </NavLink>
-                <NavLink href="/dashboard/profile" current={pathname}>
-                  Profile
-                </NavLink>
-              </>
-            )}
+          <>
+            {/* Desktop nav */}
+            <div className="hidden md:flex items-center gap-6">
+              {isAdmin ? (
+                <>
+                  <NavLink href="/admin" current={pathname}>
+                    Dashboard
+                  </NavLink>
+                  <NavDropdown
+                    label="Classes"
+                    current={pathname}
+                    items={[
+                      { label: "View All", href: "/admin/classes" },
+                      { label: "Create New", href: "/admin/create-class" },
+                    ]}
+                  />
+                  <NavDropdown
+                    label="Series"
+                    current={pathname}
+                    items={[
+                      { label: "View All", href: "/admin/series" },
+                      { label: "Create New", href: "/admin/create-series" },
+                    ]}
+                  />
+                  <NavLink href="/admin/profile" current={pathname}>
+                    Profile
+                  </NavLink>
+                </>
+              ) : (
+                <>
+                  <NavLink href="/dashboard" current={pathname}>
+                    My Classes
+                  </NavLink>
+                  <NavLink href="/dashboard/browse" current={pathname}>
+                    Browse
+                  </NavLink>
+                  <NavLink href="/dashboard/instructors" current={pathname}>
+                    Instructors
+                  </NavLink>
+                  <NavLink href="/dashboard/profile" current={pathname}>
+                    Profile
+                  </NavLink>
+                </>
+              )}
+              <button
+                onClick={handleSignOut}
+                className="text-sm text-muted transition-colors hover:text-foreground"
+              >
+                Sign Out
+              </button>
+            </div>
+
+            {/* Mobile hamburger */}
             <button
-              onClick={handleSignOut}
-              className="text-sm text-muted transition-colors hover:text-foreground"
+              onClick={() => setMobileOpen((prev) => !prev)}
+              className="md:hidden flex items-center justify-center h-8 w-8 text-muted hover:text-foreground"
+              aria-label="Toggle menu"
             >
-              Sign Out
+              <svg
+                className="h-5 w-5"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                {mobileOpen ? (
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M6 18L18 6M6 6l12 12"
+                  />
+                ) : (
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M4 6h16M4 12h16M4 18h16"
+                  />
+                )}
+              </svg>
             </button>
-          </div>
+          </>
         )}
       </div>
+
+      {/* Mobile menu */}
+      {user && mobileOpen && (
+        <div className="md:hidden border-t border-border bg-surface px-6 pb-4 pt-2 space-y-1">
+          {isAdmin ? (
+            <>
+              <MobileLink
+                href="/admin"
+                current={pathname}
+                onClick={() => setMobileOpen(false)}
+              >
+                Dashboard
+              </MobileLink>
+              <MobileLink
+                href="/admin/classes"
+                current={pathname}
+                onClick={() => setMobileOpen(false)}
+              >
+                All Classes
+              </MobileLink>
+              <MobileLink
+                href="/admin/create-class"
+                current={pathname}
+                onClick={() => setMobileOpen(false)}
+              >
+                Create Class
+              </MobileLink>
+              <MobileLink
+                href="/admin/series"
+                current={pathname}
+                onClick={() => setMobileOpen(false)}
+              >
+                All Series
+              </MobileLink>
+              <MobileLink
+                href="/admin/create-series"
+                current={pathname}
+                onClick={() => setMobileOpen(false)}
+              >
+                Create Series
+              </MobileLink>
+              <MobileLink
+                href="/admin/profile"
+                current={pathname}
+                onClick={() => setMobileOpen(false)}
+              >
+                Profile
+              </MobileLink>
+            </>
+          ) : (
+            <>
+              <MobileLink
+                href="/dashboard"
+                current={pathname}
+                onClick={() => setMobileOpen(false)}
+              >
+                My Classes
+              </MobileLink>
+              <MobileLink
+                href="/dashboard/browse"
+                current={pathname}
+                onClick={() => setMobileOpen(false)}
+              >
+                Browse
+              </MobileLink>
+              <MobileLink
+                href="/dashboard/instructors"
+                current={pathname}
+                onClick={() => setMobileOpen(false)}
+              >
+                Instructors
+              </MobileLink>
+              <MobileLink
+                href="/dashboard/profile"
+                current={pathname}
+                onClick={() => setMobileOpen(false)}
+              >
+                Profile
+              </MobileLink>
+            </>
+          )}
+          <button
+            onClick={() => {
+              setMobileOpen(false);
+              handleSignOut();
+            }}
+            className="block w-full text-left py-2 text-sm text-muted transition-colors hover:text-foreground"
+          >
+            Sign Out
+          </button>
+        </div>
+      )}
     </nav>
+  );
+}
+
+function MobileLink({
+  href,
+  current,
+  onClick,
+  children,
+}: {
+  href: string;
+  current: string;
+  onClick: () => void;
+  children: React.ReactNode;
+}) {
+  const isActive = current === href;
+  return (
+    <Link
+      href={href}
+      onClick={onClick}
+      className={`block py-2 text-sm font-medium transition-colors ${
+        isActive ? "text-accent" : "text-muted hover:text-foreground"
+      }`}
+    >
+      {children}
+    </Link>
   );
 }
 

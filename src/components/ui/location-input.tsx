@@ -76,8 +76,17 @@ export function LocationInput({
   const [detecting, setDetecting] = useState(false);
   const [suggestions, setSuggestions] = useState<string[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
-  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const zipDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const cityDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const wrapperRef = useRef<HTMLDivElement>(null);
+
+  // Clear pending timers on unmount
+  useEffect(() => {
+    return () => {
+      if (zipDebounceRef.current) clearTimeout(zipDebounceRef.current);
+      if (cityDebounceRef.current) clearTimeout(cityDebounceRef.current);
+    };
+  }, []);
 
   // Close suggestions on click outside
   useEffect(() => {
@@ -131,9 +140,9 @@ export function LocationInput({
   const handleZipChange = useCallback(
     (value: string) => {
       onZipChange(value);
-      if (debounceRef.current) clearTimeout(debounceRef.current);
+      if (zipDebounceRef.current) clearTimeout(zipDebounceRef.current);
       if (value.length === 5 && /^\d{5}$/.test(value)) {
-        debounceRef.current = setTimeout(async () => {
+        zipDebounceRef.current = setTimeout(async () => {
           try {
             const res = await fetch(`https://api.zippopotam.us/us/${value}`);
             if (res.ok) {
@@ -157,9 +166,9 @@ export function LocationInput({
   const handleCityInput = useCallback(
     (value: string) => {
       onCityChange(value);
-      if (debounceRef.current) clearTimeout(debounceRef.current);
+      if (cityDebounceRef.current) clearTimeout(cityDebounceRef.current);
       if (value.length >= 3) {
-        debounceRef.current = setTimeout(async () => {
+        cityDebounceRef.current = setTimeout(async () => {
           try {
             const res = await fetch(
               `https://nominatim.openstreetmap.org/search?city=${encodeURIComponent(value)}&countrycodes=us&format=json&limit=5&addressdetails=1`,

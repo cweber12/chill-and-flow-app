@@ -1,16 +1,11 @@
 "use client";
 
-import { Navbar } from "@/components/navbar";
+import { NavbarLayout } from "@/components/ui/navbar-layout";
 
 export default function AdminLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  return (
-    <>
-      <Navbar />
-      <main className="flex-1">{children}</main>
-    </>
-  );
+  return <NavbarLayout>{children}</NavbarLayout>;
 }

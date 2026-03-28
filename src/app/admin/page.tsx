@@ -1,10 +1,32 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import { useAuth } from "@/hooks/use-auth";
 import Link from "next/link";
+import {
+  fetchAllClasses,
+  fetchAllSeries,
+  fetchFollowerCount,
+} from "@/lib/supabase/queries";
 
 export default function AdminDashboard() {
   const { user, loading } = useAuth();
+  const [classCount, setClassCount] = useState<number | null>(null);
+  const [seriesCount, setSeriesCount] = useState<number | null>(null);
+  const [followers, setFollowers] = useState<number | null>(null);
+
+  useEffect(() => {
+    if (!user) return;
+    Promise.allSettled([
+      fetchAllClasses(),
+      fetchAllSeries(),
+      fetchFollowerCount(user.id),
+    ]).then(([cResult, sResult, fResult]) => {
+      if (cResult.status === "fulfilled") setClassCount(cResult.value.length);
+      if (sResult.status === "fulfilled") setSeriesCount(sResult.value.length);
+      if (fResult.status === "fulfilled") setFollowers(fResult.value);
+    });
+  }, [user]);
 
   if (loading) {
     return (
@@ -25,6 +47,13 @@ export default function AdminDashboard() {
       <p className="mt-2 text-muted">
         Manage your yoga classes, series, and video content.
       </p>
+
+      {/* Stats row */}
+      <div className="mt-8 grid gap-4 sm:grid-cols-3">
+        <StatCard label="Classes" value={classCount} />
+        <StatCard label="Series" value={seriesCount} />
+        <StatCard label="Followers" value={followers} />
+      </div>
 
       <div className="mt-10 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
         <DashboardCard
@@ -58,6 +87,17 @@ export default function AdminDashboard() {
           icon="☰"
         />
       </div>
+    </div>
+  );
+}
+
+function StatCard({ label, value }: { label: string; value: number | null }) {
+  return (
+    <div className="rounded-xl border border-border bg-surface p-5 text-center">
+      <p className="text-2xl font-bold text-accent">
+        {value !== null ? value : "–"}
+      </p>
+      <p className="mt-1 text-sm text-muted">{label}</p>
     </div>
   );
 }

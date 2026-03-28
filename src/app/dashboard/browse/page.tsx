@@ -318,66 +318,95 @@ export default function BrowseClassesPage() {
         ) : (
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {filteredSeries.map((s) => (
-              <div
+              <BrowseSeriesCard
                 key={s.id}
-                className="rounded-xl border border-border bg-surface p-5 transition-all hover:border-accent hover:shadow-md"
-              >
-                <Link href={`/series/${s.id}`}>
-                  {s.image_url && (
-                    <img
-                      src={s.image_url}
-                      alt={s.title}
-                      className="mb-3 h-32 w-full rounded-lg object-cover"
-                    />
-                  )}
-                  <h3 className="font-semibold">{s.title}</h3>
-                  <p className="mt-1 text-sm text-muted line-clamp-2">
-                    {s.description}
-                  </p>
-                </Link>
-                <div className="mt-3 flex items-center justify-between text-xs text-muted">
-                  <span>{s.classes.length} classes</span>
-                  <div className="flex items-center gap-2">
-                    {instructorMap.get(s.instructor_id)?.full_name && (
-                      <span>
-                        {instructorMap.get(s.instructor_id)!.full_name}
-                      </span>
-                    )}
-                    <button
-                      onClick={async () => {
-                        if (enrolledSeriesIds.has(s.id)) {
-                          await unenrollFromSeries(s.id);
-                          setSeriesEnrollments((prev) =>
-                            prev.filter((e) => e.series_id !== s.id),
-                          );
-                        } else {
-                          await enrollInSeries(s.id);
-                          setSeriesEnrollments((prev) => [
-                            ...prev,
-                            {
-                              id: crypto.randomUUID(),
-                              user_id: "",
-                              series_id: s.id,
-                              status: "enrolled",
-                              created_at: new Date().toISOString(),
-                            },
-                          ]);
-                        }
-                      }}
-                      className={`rounded-lg px-3 py-1 text-xs font-medium transition-colors ${
-                        enrolledSeriesIds.has(s.id)
-                          ? "bg-accent/10 text-accent"
-                          : "bg-accent text-white hover:bg-accent/80"
-                      }`}
-                    >
-                      {enrolledSeriesIds.has(s.id) ? "Enrolled ✓" : "Enroll"}
-                    </button>
-                  </div>
-                </div>
-              </div>
+                series={s}
+                instructorName={instructorMap.get(s.instructor_id)?.full_name}
+                enrolled={enrolledSeriesIds.has(s.id)}
+                onEnrollToggle={async () => {
+                  if (enrolledSeriesIds.has(s.id)) {
+                    await unenrollFromSeries(s.id);
+                    setSeriesEnrollments((prev) =>
+                      prev.filter((e) => e.series_id !== s.id),
+                    );
+                  } else {
+                    await enrollInSeries(s.id);
+                    setSeriesEnrollments((prev) => [
+                      ...prev,
+                      {
+                        id: crypto.randomUUID(),
+                        user_id: "",
+                        series_id: s.id,
+                        status: "enrolled",
+                        created_at: new Date().toISOString(),
+                      },
+                    ]);
+                  }
+                }}
+              />
             ))}
           </div>
         )}
+      </div>
+    </div>
+  );
+}
+
+function BrowseSeriesCard({
+  series,
+  instructorName,
+  enrolled,
+  onEnrollToggle,
+}: {
+  series: YogaSeries;
+  instructorName?: string;
+  enrolled: boolean;
+  onEnrollToggle: () => Promise<void>;
+}) {
+  const [toggling, setToggling] = useState(false);
+
+  const handleToggle = async () => {
+    setToggling(true);
+    try {
+      await onEnrollToggle();
+    } catch {
+      // Revert will happen on next data load
+    } finally {
+      setToggling(false);
+    }
+  };
+
+  return (
+    <div className="rounded-xl border border-border bg-surface p-5 transition-all hover:border-accent hover:shadow-md">
+      <Link href={`/series/${series.id}`}>
+        {series.image_url && (
+          <img
+            src={series.image_url}
+            alt={series.title}
+            className="mb-3 h-32 w-full rounded-lg object-cover"
+          />
+        )}
+        <h3 className="font-semibold">{series.title}</h3>
+        <p className="mt-1 text-sm text-muted line-clamp-2">
+          {series.description}
+        </p>
+      </Link>
+      <div className="mt-3 flex items-center justify-between text-xs text-muted">
+        <span>{series.classes.length} classes</span>
+        <div className="flex items-center gap-2">
+          {instructorName && <span>{instructorName}</span>}
+          <button
+            onClick={handleToggle}
+            disabled={toggling}
+            className={`rounded-lg px-3 py-1 text-xs font-medium transition-colors disabled:opacity-50 ${
+              enrolled
+                ? "bg-accent/10 text-accent"
+                : "bg-accent text-white hover:bg-accent/80"
+            }`}
+          >
+            {enrolled ? "Enrolled ✓" : "Enroll"}
+          </button>
+        </div>
       </div>
     </div>
   );

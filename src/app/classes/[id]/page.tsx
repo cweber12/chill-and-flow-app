@@ -107,11 +107,7 @@ export default function ClassDetailPage({
                 d="M15 10l4.553-2.069A1 1 0 0121 8.869v6.262a1 1 0 01-1.447.894L15 14M3 8a2 2 0 012-2h10a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V8z"
               />
             </svg>
-            <p className="mb-4 text-sm text-muted">No video uploaded yet</p>
-            <label className="cursor-pointer rounded-lg bg-accent px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-accent/80">
-              Upload Video
-              <input type="file" accept="video/*" className="sr-only" />
-            </label>
+            <p className="text-sm text-muted">No video uploaded yet</p>
           </div>
         )}
       </div>

@@ -34,6 +34,7 @@ export default function DashboardPage() {
   const [dataLoading, setDataLoading] = useState(true);
 
   useEffect(() => {
+    if (!user) return;
     Promise.allSettled([
       fetchAllClasses(),
       fetchAllSeries(),
@@ -49,7 +50,7 @@ export default function DashboardPage() {
           setSeriesEnrollments(seResult.value);
       })
       .finally(() => setDataLoading(false));
-  }, []);
+  }, [user]);
 
   const classMap = new Map(allClasses.map((c) => [c.id, c]));
   const seriesMap = new Map(allSeries.map((s) => [s.id, s]));

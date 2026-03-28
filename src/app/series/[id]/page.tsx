@@ -2,7 +2,7 @@
 
 import { use, useState, useEffect } from "react";
 import Link from "next/link";
-import { fetchSeriesById, fetchClassById } from "@/lib/supabase/queries";
+import { fetchSeriesById, fetchClassesByIds } from "@/lib/supabase/queries";
 import type { YogaClass, YogaSeries } from "@/types";
 
 export default function SeriesDetailPage({
@@ -19,11 +19,15 @@ export default function SeriesDetailPage({
   useEffect(() => {
     fetchSeriesById(id).then(async (s) => {
       setSeries(s);
-      if (s) {
-        const classes = await Promise.all(
-          s.classes.map((classId) => fetchClassById(classId)),
+      if (s && s.classes.length > 0) {
+        const classes = await fetchClassesByIds(s.classes);
+        // Preserve the order from the series definition
+        const classMap = new Map(classes.map((c) => [c.id, c]));
+        setSeriesClasses(
+          s.classes
+            .map((cid) => classMap.get(cid))
+            .filter(Boolean) as YogaClass[],
         );
-        setSeriesClasses(classes.filter(Boolean) as YogaClass[]);
       }
     });
   }, [id]);
@@ -54,10 +58,10 @@ export default function SeriesDetailPage({
     <div className="mx-auto max-w-4xl px-6 py-12">
       {/* Back link */}
       <Link
-        href="/admin/series"
+        href="/dashboard/browse"
         className="text-sm text-muted hover:text-foreground transition-colors"
       >
-        ← Back to series
+        ← Back to browse
       </Link>
 
       <h1 className="mt-6 text-3xl font-bold tracking-tight">{series.title}</h1>

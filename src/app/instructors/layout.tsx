@@ -2,7 +2,7 @@
 
 import { NavbarLayout } from "@/components/ui/navbar-layout";
 
-export default function ClassesLayout({
+export default function InstructorsLayout({
   children,
 }: {
   children: React.ReactNode;
