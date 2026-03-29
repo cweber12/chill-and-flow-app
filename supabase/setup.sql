@@ -53,6 +53,9 @@ create table if not exists public.yoga_classes (
 
 alter table public.yoga_classes add column if not exists location  text not null default '';
 alter table public.yoga_classes add column if not exists image_url text;
+alter table public.yoga_classes add column if not exists format    text not null default 'online'
+  check (format in ('online', 'in-person'));
+alter table public.yoga_classes add column if not exists address   text not null default '';
 
 create index if not exists yoga_classes_type_idx       on public.yoga_classes (type);
 create index if not exists yoga_classes_difficulty_idx on public.yoga_classes (difficulty);
@@ -70,6 +73,10 @@ create table if not exists public.yoga_series (
 );
 
 alter table public.yoga_series add column if not exists image_url text;
+alter table public.yoga_series add column if not exists format   text not null default 'online'
+  check (format in ('online', 'in-person'));
+alter table public.yoga_series add column if not exists location text not null default '';
+alter table public.yoga_series add column if not exists address  text not null default '';
 
 create index if not exists yoga_series_created_at_idx on public.yoga_series (created_at desc);
 
@@ -346,6 +353,17 @@ values (
 )
 on conflict (id) do nothing;
 
+-- Create the class_videos bucket (used for online class videos).
+insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+values (
+  'class_videos',
+  'class_videos',
+  true,
+  524288000,
+  array['video/mp4', 'video/webm', 'video/ogg', 'video/quicktime']
+)
+on conflict (id) do nothing;
+
 -- Drop any old/conflicting storage policies from earlier migrations
 drop policy if exists "photos_select_authenticated"  on storage.objects;
 drop policy if exists "photos_insert_authenticated"  on storage.objects;
@@ -358,6 +376,9 @@ drop policy if exists "instructor_photos_delete"     on storage.objects;
 drop policy if exists "photos_bucket_select"         on storage.objects;
 drop policy if exists "photos_bucket_insert"         on storage.objects;
 drop policy if exists "photos_bucket_delete"         on storage.objects;
+drop policy if exists "videos_select_authenticated"  on storage.objects;
+drop policy if exists "videos_insert_admin"          on storage.objects;
+drop policy if exists "videos_delete_admin"          on storage.objects;
 
 -- Any authenticated user can read/upload/delete from the photos bucket.
 create policy "photos_bucket_select"
@@ -371,6 +392,19 @@ create policy "photos_bucket_insert"
 create policy "photos_bucket_delete"
   on storage.objects for delete to authenticated
   using (bucket_id = 'photos');
+
+-- Admins can read/upload/delete class videos.
+create policy "videos_select_authenticated"
+  on storage.objects for select to authenticated
+  using (bucket_id = 'class_videos');
+
+create policy "videos_insert_admin"
+  on storage.objects for insert to authenticated
+  with check (bucket_id = 'class_videos' and public.current_user_role() = 'admin');
+
+create policy "videos_delete_admin"
+  on storage.objects for delete to authenticated
+  using (bucket_id = 'class_videos' and public.current_user_role() = 'admin');
 
 -- ══════════════════════════════════════════════════════════════════════════════
 -- 5. RELOAD SCHEMA CACHE

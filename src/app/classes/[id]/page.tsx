@@ -64,12 +64,15 @@ export default function ClassDetailPage({
         <span className="inline-block rounded-full bg-surface-hover px-3 py-1 text-xs font-medium text-muted">
           {yogaClass.difficulty}
         </span>
+        <span className="inline-block rounded-full border border-border bg-surface px-3 py-1 text-xs font-medium text-foreground">
+          {yogaClass.format === "online" ? "Online" : "In-Person"}
+        </span>
         <span className="text-xs text-muted">
           {yogaClass.duration_minutes} min
         </span>
       </div>
 
-      {/* Video player / upload frame */}
+      {/* Video section */}
       <div className="mt-8">
         {yogaClass.video_url ? (
           <div
@@ -92,7 +95,7 @@ export default function ClassDetailPage({
               {fullscreen ? "Exit Fullscreen" : "Fullscreen"}
             </button>
           </div>
-        ) : (
+        ) : yogaClass.format === "online" ? (
           <div className="flex aspect-video flex-col items-center justify-center rounded-xl border-2 border-dashed border-border bg-surface">
             <svg
               className="mb-3 h-10 w-10 text-muted"
@@ -109,8 +112,22 @@ export default function ClassDetailPage({
             </svg>
             <p className="text-sm text-muted">No video uploaded yet</p>
           </div>
-        )}
+        ) : null}
       </div>
+
+      {/* Location — in-person only */}
+      {yogaClass.format === "in-person" &&
+        (yogaClass.address || yogaClass.location) && (
+          <div className="mt-8 rounded-xl border border-border bg-surface p-5">
+            <h2 className="text-lg font-semibold mb-2">Location</h2>
+            {yogaClass.address && (
+              <p className="text-muted">{yogaClass.address}</p>
+            )}
+            {yogaClass.location && (
+              <p className="text-muted">{yogaClass.location}</p>
+            )}
+          </div>
+        )}
 
       {/* Description */}
       <div className="mt-8">

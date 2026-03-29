@@ -18,6 +18,7 @@ export type ClassType =
   | "restorative"
   | "power"
   | "meditation";
+export type ClassFormat = "online" | "in-person";
 
 export interface YogaClass {
   id: string;
@@ -25,10 +26,12 @@ export interface YogaClass {
   description: string;
   type: ClassType;
   difficulty: ClassDifficulty;
+  format: ClassFormat;
   duration_minutes: number;
   video_url?: string;
   thumbnail_url?: string;
   image_url?: string;
+  address: string;
   location: string;
   created_at: string;
   instructor_id: string;
@@ -38,6 +41,9 @@ export interface YogaSeries {
   id: string;
   title: string;
   description: string;
+  format: ClassFormat;
+  location: string;
+  address: string;
   classes: string[]; // class IDs
   image_url?: string;
   created_at: string;

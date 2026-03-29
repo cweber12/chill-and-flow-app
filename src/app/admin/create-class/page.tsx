@@ -8,14 +8,16 @@ import {
   uploadImage,
 } from "@/lib/supabase/queries";
 import { CLASS_TYPES, DIFFICULTIES, capitalize } from "@/lib/constants";
-import type { ClassDifficulty, ClassType } from "@/types";
+import type { ClassDifficulty, ClassFormat, ClassType } from "@/types";
 
 export default function CreateClassPage() {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
+  const [format, setFormat] = useState<ClassFormat>("online");
   const [type, setType] = useState<ClassType>("vinyasa");
   const [difficulty, setDifficulty] = useState<ClassDifficulty>("beginner");
   const [duration, setDuration] = useState(30);
+  const [address, setAddress] = useState("");
   const [location, setLocation] = useState("");
   const [videoFile, setVideoFile] = useState<File | null>(null);
   const [imageFile, setImageFile] = useState<File | null>(null);
@@ -30,22 +32,26 @@ export default function CreateClassPage() {
     setSaving(true);
     setMessage(null);
 
-    if (!videoFile) {
-      setMessage("A video file is required.");
+    if (format === "online" && !videoFile) {
+      setMessage("A video file is required for online classes.");
       setSaving(false);
       return;
     }
 
     try {
-      const video_url = await uploadClassVideo(videoFile);
+      const video_url = videoFile
+        ? await uploadClassVideo(videoFile)
+        : undefined;
       const image_url = imageFile ? await uploadImage(imageFile) : undefined;
 
       await createClass({
         title,
         description,
+        format,
         type,
         difficulty,
         duration_minutes: duration,
+        address,
         location,
         video_url,
         image_url,
@@ -54,9 +60,11 @@ export default function CreateClassPage() {
       setMessage(`Class "${title}" created successfully!`);
       setTitle("");
       setDescription("");
+      setFormat("online");
       setType("vinyasa");
       setDifficulty("beginner");
       setDuration(30);
+      setAddress("");
       setLocation("");
       setVideoFile(null);
       setImageFile(null);
@@ -111,6 +119,35 @@ export default function CreateClassPage() {
             className="w-full rounded-lg border border-border bg-surface px-4 py-2.5 text-sm outline-none focus:border-accent focus:ring-1 focus:ring-accent resize-none"
             placeholder="Describe the focus, intensity, and what students can expect..."
           />
+        </div>
+
+        {/* Format toggle */}
+        <div>
+          <label className="block text-sm font-medium mb-2">Format</label>
+          <div className="flex rounded-lg border border-border bg-surface p-1 w-fit">
+            <button
+              type="button"
+              onClick={() => setFormat("online")}
+              className={`rounded-md px-5 py-1.5 text-sm font-medium transition-colors ${
+                format === "online"
+                  ? "bg-accent text-white shadow-sm"
+                  : "text-muted hover:text-foreground"
+              }`}
+            >
+              Online
+            </button>
+            <button
+              type="button"
+              onClick={() => setFormat("in-person")}
+              className={`rounded-md px-5 py-1.5 text-sm font-medium transition-colors ${
+                format === "in-person"
+                  ? "bg-accent text-white shadow-sm"
+                  : "text-muted hover:text-foreground"
+              }`}
+            >
+              In-Person
+            </button>
+          </div>
         </div>
 
         <div className="grid gap-5 sm:grid-cols-3">
@@ -169,30 +206,101 @@ export default function CreateClassPage() {
               value={duration}
               onChange={(e) => setDuration(Number(e.target.value))}
               min={5}
-              max={120}
+              max={300}
               className="w-full rounded-lg border border-border bg-surface px-4 py-2.5 text-sm outline-none focus:border-accent focus:ring-1 focus:ring-accent"
             />
           </div>
         </div>
 
-        <div>
-          <label
-            htmlFor="classLocation"
-            className="block text-sm font-medium mb-1"
-          >
-            Location
-          </label>
-          <input
-            id="classLocation"
-            type="text"
-            value={location}
-            onChange={(e) => setLocation(e.target.value)}
-            className="w-full rounded-lg border border-border bg-surface px-4 py-2.5 text-sm outline-none focus:border-accent focus:ring-1 focus:ring-accent"
-            placeholder="e.g. Sedona, AZ"
-          />
-        </div>
+        {/* Conditional: In-Person — location fields */}
+        {format === "in-person" && (
+          <div className="space-y-4 rounded-xl border border-border bg-surface p-5">
+            <p className="text-sm font-semibold">Class Location</p>
+            <div>
+              <label
+                htmlFor="classAddress"
+                className="block text-sm font-medium mb-1"
+              >
+                Street Address
+              </label>
+              <input
+                id="classAddress"
+                type="text"
+                value={address}
+                onChange={(e) => setAddress(e.target.value)}
+                required
+                className="w-full rounded-lg border border-border bg-surface px-4 py-2.5 text-sm outline-none focus:border-accent focus:ring-1 focus:ring-accent"
+                placeholder="e.g. 123 Center St, Suite 200"
+              />
+            </div>
+            <div>
+              <label
+                htmlFor="classLocation"
+                className="block text-sm font-medium mb-1"
+              >
+                City, State
+              </label>
+              <input
+                id="classLocation"
+                type="text"
+                value={location}
+                onChange={(e) => setLocation(e.target.value)}
+                required
+                className="w-full rounded-lg border border-border bg-surface px-4 py-2.5 text-sm outline-none focus:border-accent focus:ring-1 focus:ring-accent"
+                placeholder="e.g. Sedona, AZ"
+              />
+            </div>
+          </div>
+        )}
 
-        {/* Background image upload */}
+        {/* Conditional: Online — video upload */}
+        {format === "online" && (
+          <div>
+            <label className="block text-sm font-medium mb-1">
+              Class Video <span className="text-accent">*</span>
+            </label>
+            <div
+              role="button"
+              tabIndex={0}
+              aria-label="Upload video"
+              onClick={() => fileInputRef.current?.click()}
+              onKeyDown={(e) =>
+                e.key === "Enter" && fileInputRef.current?.click()
+              }
+              className="flex cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed border-border bg-surface py-8 transition-colors hover:border-accent"
+            >
+              <svg
+                className="mb-2 h-8 w-8 text-muted"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={1.5}
+                  d="M15 10l4.553-2.069A1 1 0 0121 8.869v6.262a1 1 0 01-1.447.894L15 14M3 8a2 2 0 012-2h10a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V8z"
+                />
+              </svg>
+              {videoFile ? (
+                <p className="text-sm font-medium text-accent">
+                  {videoFile.name}
+                </p>
+              ) : (
+                <p className="text-sm text-muted">
+                  Click to select a video file
+                </p>
+              )}
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="video/mp4,video/webm,video/ogg,video/quicktime"
+                className="sr-only"
+                onChange={(e) => setVideoFile(e.target.files?.[0] ?? null)}
+              />
+            </div>
+          </div>
+        )}
         <div>
           <label className="block text-sm font-medium mb-1">
             Background Image
@@ -235,51 +343,6 @@ export default function CreateClassPage() {
               accept="image/jpeg,image/png,image/webp,image/gif"
               className="sr-only"
               onChange={(e) => setImageFile(e.target.files?.[0] ?? null)}
-            />
-          </div>
-        </div>
-
-        {/* Video upload */}
-        <div>
-          <label className="block text-sm font-medium mb-1">
-            Class Video <span className="text-accent">*</span>
-          </label>
-          <div
-            role="button"
-            tabIndex={0}
-            aria-label="Upload video"
-            onClick={() => fileInputRef.current?.click()}
-            onKeyDown={(e) =>
-              e.key === "Enter" && fileInputRef.current?.click()
-            }
-            className="flex cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed border-border bg-surface py-8 transition-colors hover:border-accent"
-          >
-            <svg
-              className="mb-2 h-8 w-8 text-muted"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={1.5}
-                d="M15 10l4.553-2.069A1 1 0 0121 8.869v6.262a1 1 0 01-1.447.894L15 14M3 8a2 2 0 012-2h10a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V8z"
-              />
-            </svg>
-            {videoFile ? (
-              <p className="text-sm font-medium text-accent">
-                {videoFile.name}
-              </p>
-            ) : (
-              <p className="text-sm text-muted">Click to select a video file</p>
-            )}
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept="video/mp4,video/webm,video/ogg,video/quicktime"
-              className="sr-only"
-              onChange={(e) => setVideoFile(e.target.files?.[0] ?? null)}
             />
           </div>
         </div>

@@ -8,6 +8,7 @@ import { createClient } from "./client";
 import type {
   YogaClass,
   YogaSeries,
+  ClassFormat,
   InstructorProfile,
   StudentProfile,
   ClassEnrollment,
@@ -20,6 +21,9 @@ interface SeriesRow {
   id: string;
   title: string;
   description: string;
+  format: string;
+  location: string;
+  address: string;
   instructor_id: string;
   created_at: string;
   series_classes: { class_id: string; position: number }[];
@@ -106,6 +110,9 @@ function mapSeriesRow(row: SeriesRow): YogaSeries {
     description: row.description,
     instructor_id: row.instructor_id,
     created_at: row.created_at,
+    format: (row.format ?? "online") as ClassFormat,
+    location: row.location ?? "",
+    address: row.address ?? "",
     classes: [...row.series_classes]
       .sort((a, b) => a.position - b.position)
       .map((sc) => sc.class_id),
@@ -134,7 +141,10 @@ export async function fetchSeriesById(id: string): Promise<YogaSeries | null> {
 }
 
 export async function createSeries(
-  values: Pick<YogaSeries, "title" | "description"> & { image_url?: string },
+  values: Pick<
+    YogaSeries,
+    "title" | "description" | "format" | "location" | "address"
+  > & { image_url?: string },
 ): Promise<YogaSeries> {
   const { supabase, user } = await getAuthenticatedUser();
 
@@ -150,7 +160,10 @@ export async function createSeries(
 export async function updateSeries(
   id: string,
   values: Partial<
-    Pick<YogaSeries, "title" | "description"> & { image_url?: string }
+    Pick<
+      YogaSeries,
+      "title" | "description" | "format" | "location" | "address"
+    > & { image_url?: string }
   >,
 ): Promise<void> {
   const supabase = createClient();

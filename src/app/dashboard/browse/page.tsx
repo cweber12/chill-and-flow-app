@@ -17,6 +17,7 @@ import {
 import { CLASS_TYPES, DIFFICULTIES, capitalize } from "@/lib/constants";
 import type {
   ClassDifficulty,
+  ClassFormat,
   ClassType,
   InstructorProfile,
   YogaClass,
@@ -56,6 +57,7 @@ export default function BrowseClassesPage() {
   const [durationIndex, setDurationIndex] = useState(0);
   const [instructorFilter, setInstructorFilter] = useState("all");
   const [locationFilter, setLocationFilter] = useState("all");
+  const [formatFilter, setFormatFilter] = useState<ClassFormat | "all">("all");
   const [showFollowedOnly, setShowFollowedOnly] = useState(false);
 
   useEffect(() => {
@@ -113,6 +115,7 @@ export default function BrowseClassesPage() {
       instructorFilter === "all" || cls.instructor_id === instructorFilter;
     const matchesLocation =
       locationFilter === "all" || cls.location === locationFilter;
+    const matchesFormat = formatFilter === "all" || cls.format === formatFilter;
     const matchesFollowed =
       !showFollowedOnly || followedSet.has(cls.instructor_id);
     return (
@@ -122,6 +125,7 @@ export default function BrowseClassesPage() {
       matchesDuration &&
       matchesInstructor &&
       matchesLocation &&
+      matchesFormat &&
       matchesFollowed
     );
   });
@@ -235,6 +239,18 @@ export default function BrowseClassesPage() {
                   {r.label}
                 </option>
               ))}
+            </select>
+            <select
+              value={formatFilter}
+              onChange={(e) =>
+                setFormatFilter(e.target.value as ClassFormat | "all")
+              }
+              aria-label="Filter by format"
+              className="rounded-lg border border-border bg-surface px-4 py-2.5 text-sm outline-none focus:border-accent focus:ring-1 focus:ring-accent"
+            >
+              <option value="all">All Formats</option>
+              <option value="online">Online</option>
+              <option value="in-person">In-Person</option>
             </select>
             {locations.length > 0 && (
               <select
@@ -450,6 +466,9 @@ function BrowseClassCard({
           </span>
           <span className="inline-block rounded-full bg-surface-hover px-2.5 py-0.5 text-xs font-medium text-muted">
             {yogaClass.difficulty}
+          </span>
+          <span className="inline-block rounded-full border border-border bg-surface px-2.5 py-0.5 text-xs font-medium text-foreground">
+            {yogaClass.format === "online" ? "Online" : "In-Person"}
           </span>
         </div>
         <h3 className="font-semibold">{yogaClass.title}</h3>

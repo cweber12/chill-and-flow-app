@@ -3,10 +3,14 @@
 import { useState, useMemo, useRef } from "react";
 import { getPlaceholderTitle } from "@/lib/mock-data";
 import { createSeries, uploadImage } from "@/lib/supabase/queries";
+import type { ClassFormat } from "@/types";
 
 export default function CreateSeriesPage() {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
+  const [format, setFormat] = useState<ClassFormat>("online");
+  const [location, setLocation] = useState("");
+  const [address, setAddress] = useState("");
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
@@ -23,10 +27,20 @@ export default function CreateSeriesPage() {
 
     try {
       const image_url = imageFile ? await uploadImage(imageFile) : undefined;
-      await createSeries({ title, description, image_url });
+      await createSeries({
+        title,
+        description,
+        format,
+        location,
+        address,
+        image_url,
+      });
       setMessage(`Series "${title}" created successfully!`);
       setTitle("");
       setDescription("");
+      setFormat("online");
+      setLocation("");
+      setAddress("");
       setImageFile(null);
     } catch (err) {
       setMessage(
@@ -82,6 +96,76 @@ export default function CreateSeriesPage() {
             placeholder="Describe the series goal, progression, and target audience..."
           />
         </div>
+
+        {/* Format toggle */}
+        <div>
+          <label className="block text-sm font-medium mb-2">Format</label>
+          <div className="flex rounded-lg border border-border bg-surface p-1 w-fit">
+            <button
+              type="button"
+              onClick={() => setFormat("online")}
+              className={`rounded-md px-5 py-1.5 text-sm font-medium transition-colors ${
+                format === "online"
+                  ? "bg-accent text-white shadow-sm"
+                  : "text-muted hover:text-foreground"
+              }`}
+            >
+              Online
+            </button>
+            <button
+              type="button"
+              onClick={() => setFormat("in-person")}
+              className={`rounded-md px-5 py-1.5 text-sm font-medium transition-colors ${
+                format === "in-person"
+                  ? "bg-accent text-white shadow-sm"
+                  : "text-muted hover:text-foreground"
+              }`}
+            >
+              In-Person
+            </button>
+          </div>
+        </div>
+
+        {/* Conditional: In-Person — location fields */}
+        {format === "in-person" && (
+          <div className="space-y-4 rounded-xl border border-border bg-surface p-5">
+            <p className="text-sm font-semibold">Series Location</p>
+            <div>
+              <label
+                htmlFor="seriesAddress"
+                className="block text-sm font-medium mb-1"
+              >
+                Street Address
+              </label>
+              <input
+                id="seriesAddress"
+                type="text"
+                value={address}
+                onChange={(e) => setAddress(e.target.value)}
+                required
+                className="w-full rounded-lg border border-border bg-surface px-4 py-2.5 text-sm outline-none focus:border-accent focus:ring-1 focus:ring-accent"
+                placeholder="e.g. 456 Studio Way"
+              />
+            </div>
+            <div>
+              <label
+                htmlFor="seriesLocation"
+                className="block text-sm font-medium mb-1"
+              >
+                City, State
+              </label>
+              <input
+                id="seriesLocation"
+                type="text"
+                value={location}
+                onChange={(e) => setLocation(e.target.value)}
+                required
+                className="w-full rounded-lg border border-border bg-surface px-4 py-2.5 text-sm outline-none focus:border-accent focus:ring-1 focus:ring-accent"
+                placeholder="e.g. Sedona, AZ"
+              />
+            </div>
+          </div>
+        )}
 
         {/* Background image upload */}
         <div>
