@@ -179,9 +179,26 @@ export async function updateSeries(
 /**
  * Uploads a video file to the class_videos bucket and returns its public URL.
  * The file is stored under a random UUID path to prevent enumeration.
+ *
+ * Edge-case guards:
+ *  - Validates file size client-side (500 MB limit matches bucket config)
+ *  - Refreshes the session before uploading so the JWT is always current
+ *    (stale JWTs after first sign-in can fail even with correct metadata)
  */
 export async function uploadClassVideo(file: File): Promise<string> {
+  const MAX_BYTES = 500 * 1024 * 1024; // 500 MB — matches bucket file_size_limit
+  if (file.size > MAX_BYTES) {
+    throw new Error(
+      `Video file is too large (${(file.size / 1048576).toFixed(0)} MB). Maximum allowed size is 500 MB.`,
+    );
+  }
+
   const supabase = createClient();
+
+  // Refresh the session so the JWT carries the latest user metadata.
+  // This prevents RLS failures on the first upload after a new sign-in.
+  await supabase.auth.refreshSession();
+
   const ext = file.name.split(".").pop() ?? "mp4";
   const path = `${crypto.randomUUID()}.${ext}`;
 
@@ -199,10 +216,12 @@ export async function uploadClassVideo(file: File): Promise<string> {
     }
     if (
       error.message.includes("row-level security") ||
-      error.message.includes("policy")
+      error.message.includes("policy") ||
+      error.message.includes("Unauthorized") ||
+      error.message.includes("403")
     ) {
       throw new Error(
-        "Video upload blocked by RLS. Run supabase/setup.sql in the Supabase SQL Editor to create the required policies.",
+        "Video upload blocked. Ensure your account has the 'admin' role and you are signed in. If the problem persists, sign out and back in, then retry.",
       );
     }
     throw new Error(error.message);

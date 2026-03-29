@@ -5,19 +5,37 @@
 -- It is fully idempotent — safe to run more than once.
 --
 -- What it does:
---   1. Creates the current_user_role() helper function
+--   1. Creates helper functions (current_user_role, is_admin)
 --   2. Creates all tables (yoga_classes, yoga_series, series_classes,
 --      instructor_profiles, student_profiles, instructor_follows,
 --      class_enrollments, series_enrollments)
 --   3. Enables RLS and creates all policies on every table
---   4. Creates the photos storage bucket and its RLS policies
+--   4. Creates the photos + class_videos storage buckets and their RLS policies
 --   5. Reloads the PostgREST schema cache
+--
+-- SUPABASE DASHBOARD REQUIREMENTS (must be done before running this script):
+--
+--   a) Authentication → Settings → "Enable email confirmations"
+--        If ON  → users must confirm email before they can sign in.
+--        If OFF → users can sign in immediately after registration.
+--        Recommendation for development: turn OFF email confirmation.
+--
+--   b) User roles are stored in user_metadata (set at signup). If you
+--      already registered as a student and need admin access, go to:
+--        Authentication → Users → click the user → "Edit" → update
+--        raw_user_meta_data to: {"role": "admin", "full_name": "Your Name"}
+--      Then sign out and sign back in so a fresh JWT is issued.
+--
+--   c) After running this script, all existing signed-in users should
+--      sign out and sign back in to ensure their session is refreshed.
 -- ─────────────────────────────────────────────────────────────────────────────
 
 -- ══════════════════════════════════════════════════════════════════════════════
--- 1. HELPER FUNCTION
+-- 1. HELPER FUNCTIONS
 -- ══════════════════════════════════════════════════════════════════════════════
 
+-- current_user_role(): reads directly from auth.users.raw_user_meta_data
+-- (never stale — does NOT depend on JWT claim timing).
 create or replace function public.current_user_role()
 returns text
 language sql
@@ -26,14 +44,43 @@ security definer
 set search_path = ''
 as $$
   select coalesce(
-    (auth.jwt() -> 'user_metadata' ->> 'role'),
-    (auth.jwt() -> 'app_metadata'  ->> 'role'),
+    (
+      select coalesce(
+        raw_user_meta_data ->> 'role',
+        raw_app_meta_data  ->> 'role'
+      )
+      from auth.users
+      where id = auth.uid()
+    ),
     'user'
   )
 $$;
 
--- Ensure the authenticated role can call this function from any context.
+-- is_admin(): boolean helper used in storage policies where calling
+-- current_user_role() in a text-comparison expression can be verbose.
+-- Also reads auth.users directly — not the JWT — so fresh-session
+-- issues after signup/login cannot cause false negatives.
+create or replace function public.is_admin()
+returns boolean
+language sql
+stable
+security definer
+set search_path = ''
+as $$
+  select exists (
+    select 1
+    from auth.users
+    where id = auth.uid()
+    and (
+      (raw_user_meta_data ->> 'role') = 'admin'
+      or (raw_app_meta_data  ->> 'role') = 'admin'
+    )
+  )
+$$;
+
+-- Ensure both functions are callable from every execution context.
 grant execute on function public.current_user_role() to authenticated, anon;
+grant execute on function public.is_admin()          to authenticated, anon;
 
 -- ══════════════════════════════════════════════════════════════════════════════
 -- 2. TABLES
@@ -398,33 +445,20 @@ create policy "photos_bucket_delete"
   on storage.objects for delete to authenticated
   using (bucket_id = 'photos');
 
--- Authenticated users can view class videos.
--- Admins can upload and delete class videos.
--- Note: role is checked inline (not via function) to ensure it resolves
--- correctly in the storage execution context.
+-- Class video policies use is_admin(), which reads from auth.users directly.
+-- This is more reliable than inline JWT checks, which can reflect stale data
+-- if the token was issued before the user metadata was fully propagated.
 create policy "videos_select_authenticated"
   on storage.objects for select to authenticated
   using (bucket_id = 'class_videos');
 
 create policy "videos_insert_admin"
   on storage.objects for insert to authenticated
-  with check (
-    bucket_id = 'class_videos'
-    and (
-      (auth.jwt() -> 'user_metadata' ->> 'role') = 'admin'
-      or (auth.jwt() -> 'app_metadata'  ->> 'role') = 'admin'
-    )
-  );
+  with check (bucket_id = 'class_videos' and public.is_admin());
 
 create policy "videos_delete_admin"
   on storage.objects for delete to authenticated
-  using (
-    bucket_id = 'class_videos'
-    and (
-      (auth.jwt() -> 'user_metadata' ->> 'role') = 'admin'
-      or (auth.jwt() -> 'app_metadata'  ->> 'role') = 'admin'
-    )
-  );
+  using (bucket_id = 'class_videos' and public.is_admin());
 
 -- ══════════════════════════════════════════════════════════════════════════════
 -- 5. RELOAD SCHEMA CACHE
