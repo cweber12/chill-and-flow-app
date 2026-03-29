@@ -188,7 +188,25 @@ export async function uploadClassVideo(file: File): Promise<string> {
   const { error } = await supabase.storage
     .from("class_videos")
     .upload(path, file, { upsert: false, contentType: file.type });
-  if (error) throw new Error(error.message);
+  if (error) {
+    if (
+      error.message.toLowerCase().includes("bucket") ||
+      error.message.toLowerCase().includes("not found")
+    ) {
+      throw new Error(
+        "Storage bucket 'class_videos' not found. Run supabase/setup.sql in the Supabase SQL Editor to create the required buckets.",
+      );
+    }
+    if (
+      error.message.includes("row-level security") ||
+      error.message.includes("policy")
+    ) {
+      throw new Error(
+        "Video upload blocked by RLS. Run supabase/setup.sql in the Supabase SQL Editor to create the required policies.",
+      );
+    }
+    throw new Error(error.message);
+  }
 
   const {
     data: { publicUrl },
@@ -290,6 +308,14 @@ export async function uploadPhoto(file: File): Promise<string> {
     .upload(path, file, { upsert: false, contentType: file.type });
   if (error) {
     if (
+      error.message.toLowerCase().includes("bucket") ||
+      error.message.toLowerCase().includes("not found")
+    ) {
+      throw new Error(
+        "Storage bucket 'photos' not found. Run supabase/setup.sql in the Supabase SQL Editor to create the required buckets.",
+      );
+    }
+    if (
       error.message.includes("row-level security") ||
       error.message.includes("policy")
     ) {
@@ -338,7 +364,22 @@ export async function upsertStudentProfile(
     .upsert({ ...values, updated_at: new Date().toISOString() })
     .select()
     .single();
-  if (error) throw new Error(error.message);
+  if (error) {
+    if (error.message.includes("schema cache") || error.code === "PGRST204") {
+      throw new Error(
+        "Table 'student_profiles' not found. Run supabase/setup.sql in the Supabase SQL Editor.",
+      );
+    }
+    if (
+      error.message.includes("row-level security") ||
+      error.message.includes("policy")
+    ) {
+      throw new Error(
+        "Profile save blocked by RLS. Run supabase/setup.sql in the Supabase SQL Editor to create the required policies.",
+      );
+    }
+    throw new Error(error.message);
+  }
   return data as StudentProfile;
 }
 

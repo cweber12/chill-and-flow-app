@@ -81,9 +81,12 @@ function EditClassForm({ yogaClass }: { yogaClass: YogaClass }) {
     setMessage(null);
 
     try {
-      let video_url = yogaClass.video_url;
-      if (videoFile) {
-        video_url = await uploadClassVideo(videoFile);
+      // For in-person classes, clear any existing video URL so the DB stays consistent.
+      let video_url: string | undefined;
+      if (format === "online") {
+        video_url = videoFile
+          ? await uploadClassVideo(videoFile)
+          : yogaClass.video_url;
       }
 
       let image_url = yogaClass.image_url;
