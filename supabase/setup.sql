@@ -23,12 +23,17 @@ returns text
 language sql
 stable
 security definer
+set search_path = ''
 as $$
   select coalesce(
     (auth.jwt() -> 'user_metadata' ->> 'role'),
+    (auth.jwt() -> 'app_metadata'  ->> 'role'),
     'user'
   )
 $$;
+
+-- Ensure the authenticated role can call this function from any context.
+grant execute on function public.current_user_role() to authenticated, anon;
 
 -- ══════════════════════════════════════════════════════════════════════════════
 -- 2. TABLES
@@ -393,18 +398,33 @@ create policy "photos_bucket_delete"
   on storage.objects for delete to authenticated
   using (bucket_id = 'photos');
 
--- Admins can read/upload/delete class videos.
+-- Authenticated users can view class videos.
+-- Admins can upload and delete class videos.
+-- Note: role is checked inline (not via function) to ensure it resolves
+-- correctly in the storage execution context.
 create policy "videos_select_authenticated"
   on storage.objects for select to authenticated
   using (bucket_id = 'class_videos');
 
 create policy "videos_insert_admin"
   on storage.objects for insert to authenticated
-  with check (bucket_id = 'class_videos' and public.current_user_role() = 'admin');
+  with check (
+    bucket_id = 'class_videos'
+    and (
+      (auth.jwt() -> 'user_metadata' ->> 'role') = 'admin'
+      or (auth.jwt() -> 'app_metadata'  ->> 'role') = 'admin'
+    )
+  );
 
 create policy "videos_delete_admin"
   on storage.objects for delete to authenticated
-  using (bucket_id = 'class_videos' and public.current_user_role() = 'admin');
+  using (
+    bucket_id = 'class_videos'
+    and (
+      (auth.jwt() -> 'user_metadata' ->> 'role') = 'admin'
+      or (auth.jwt() -> 'app_metadata'  ->> 'role') = 'admin'
+    )
+  );
 
 -- ══════════════════════════════════════════════════════════════════════════════
 -- 5. RELOAD SCHEMA CACHE
