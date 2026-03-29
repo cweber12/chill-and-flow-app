@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useRef } from "react";
+import { useState, useEffect, useRef } from "react";
 import { getPlaceholderTitle } from "@/lib/mock-data";
 import {
   createClass,
@@ -25,7 +25,12 @@ export default function CreateClassPage() {
   const [saving, setSaving] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const imageInputRef = useRef<HTMLInputElement>(null);
-  const placeholderTitle = useMemo(() => `e.g. ${getPlaceholderTitle()}`, []);
+  const [placeholderTitle, setPlaceholderTitle] = useState(
+    "e.g. Morning Vinyasa Flow",
+  );
+  useEffect(() => {
+    setPlaceholderTitle(`e.g. ${getPlaceholderTitle()}`);
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

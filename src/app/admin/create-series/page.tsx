@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useRef } from "react";
+import { useState, useEffect, useRef } from "react";
 import { getPlaceholderTitle } from "@/lib/mock-data";
 import { createSeries, uploadImage } from "@/lib/supabase/queries";
 import type { ClassFormat } from "@/types";
@@ -15,10 +15,12 @@ export default function CreateSeriesPage() {
   const [message, setMessage] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const imageInputRef = useRef<HTMLInputElement>(null);
-  const titlePlaceholder = useMemo(
-    () => `e.g. ${getPlaceholderTitle()} Series`,
-    [],
+  const [titlePlaceholder, setTitlePlaceholder] = useState(
+    "e.g. Morning Vinyasa Flow Series",
   );
+  useEffect(() => {
+    setTitlePlaceholder(`e.g. ${getPlaceholderTitle()} Series`);
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

@@ -1,24 +1,35 @@
 @import "tailwindcss";
 
+/* ─── Color palette: #30364F · #ACBAC4 · #E1D9BC · #F0F0DB ─────────────────
+   Midnight navy / misty blue-gray / warm sand / ivory cream
+   Contrast notes (WCAG):
+     #30364F on #F0F0DB → 8.9:1  (AAA) ✓
+     #30364F on #FFFFFF → 10.2:1 (AAA) ✓   white on #30364F → same
+     #6B7897 on #F0F0DB → ~3.5:1 (AA large text, placeholders) ✓
+   ─────────────────────────────────────────────────────────────────────────── */
+
 :root {
-  --background: #faf6f1;
-  --foreground: #3b2e2a;
-  --accent: #e8a0bf;
-  --accent-light: #f2c4d6;
-  --accent-dark: #d47ea5;
-  --secondary: #a8d8ea;
-  --secondary-dark: #7ec8e3;
-  --surface: #ffffff;
-  --surface-hover: #fdf0e9;
-  --muted: #a89f9a;
-  --border: #e8ddd5;
+  /* Palette */
+  --background: #f0f0db; /* ivory cream */
+  --foreground: #30364f; /* midnight navy */
+  --accent: #30364f; /* navy — primary buttons, links, focus rings */
+  --accent-light: #4d5874; /* lighter navy hover */
+  --accent-dark: #1e2336; /* deeper navy active */
+  --secondary: #acbac4; /* misty blue-gray — decorative accents */
+  --secondary-dark: #7d9aaa; /* slightly richer blue-gray */
+  --surface: #ffffff; /* white cards lift off the cream background */
+  --surface-hover: #e1d9bc; /* warm sand — card/item hover */
+  --muted: #6b7897; /* desaturated navy-gray — secondary text */
+  --border: #c4c6b4; /* warm gray — subtle dividers */
+
+  /* Gradients */
   --ocean-gradient: linear-gradient(
     135deg,
-    #a8d8ea 0%,
-    #e8a0bf 50%,
-    #f2c4d6 100%
+    #1c2033 0%,
+    #30364f 55%,
+    #405068 100%
   );
-  --ocean-soft: linear-gradient(180deg, #faf6f1 0%, #fdf0e9 100%);
+  --ocean-soft: linear-gradient(180deg, #f0f0db 0%, #e1d9bc 100%);
 }
 
 @theme inline {
@@ -39,24 +50,24 @@
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #1f1a17;
-    --foreground: #ede6e0;
-    --accent: #e8a0bf;
-    --accent-light: #f2c4d6;
-    --accent-dark: #d47ea5;
-    --secondary: #7ec8e3;
-    --secondary-dark: #5ab0d0;
-    --surface: #2c2420;
-    --surface-hover: #3a302b;
-    --muted: #8a7e78;
-    --border: #4a3f3a;
+    --background: #1c2033; /* deep navy — matches gradient start */
+    --foreground: #f0f0db; /* ivory cream text on dark */
+    --accent: #4b5e7a; /* medium navy — white text: ~6:1 ✓ */
+    --accent-light: #5c7291;
+    --accent-dark: #3a4d63;
+    --secondary: #acbac4;
+    --secondary-dark: #8095a0;
+    --surface: #252c42; /* slightly lighter than background */
+    --surface-hover: #30364f; /* the main palette navy */
+    --muted: #8090a8; /* blue-gray — ~4:1 on dark surface ✓ */
+    --border: #3a4258;
     --ocean-gradient: linear-gradient(
       135deg,
-      #2a4a5a 0%,
-      #8a5070 50%,
-      #c48aa0 100%
+      #141824 0%,
+      #1c2033 55%,
+      #2a3550 100%
     );
-    --ocean-soft: linear-gradient(180deg, #1f1a17 0%, #2c2420 100%);
+    --ocean-soft: linear-gradient(180deg, #1c2033 0%, #252c42 100%);
   }
 }
 
